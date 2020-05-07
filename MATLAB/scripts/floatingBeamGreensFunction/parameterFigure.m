@@ -2,15 +2,15 @@
 sourceType = 'moment';
 statDist = 10000;
 L = 1e7;
-f_max = 10;
+f_max = 1;
 t_max = 1000;
 h_i = 100;
 h_w = 1000;
 
 % manually set parameters for each subplot
-params = {{f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,100,"half up"},{f_max,t_max,h_i,h_w,100,"half down"},{f_max,t_max,h_i,h_w,100,"full"};...
-         {f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,250,"half up"},{f_max,t_max,h_i,h_w,250,"half down"},{f_max,t_max,h_i,h_w,250,"full"};...
-         {f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,500,"half up"},{f_max,t_max,h_i,h_w,500,"half down"},{f_max,t_max,h_i,h_w,500,"full"}};
+params = {{f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,10,"half up"},{f_max,t_max,h_i,h_w,10,"half down"},{f_max,t_max,h_i,h_w,10,"full"};...
+         {f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,50,"half up"},{f_max,t_max,h_i,h_w,50,"half down"},{f_max,t_max,h_i,h_w,50,"full"};...
+         {f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,100,"half up"},{f_max,t_max,h_i,h_w,100,"half down"},{f_max,t_max,h_i,h_w,100,"full"}};
      
 % get dimensions of parameter matrix
 paramDims = size(params);
@@ -22,15 +22,51 @@ p = 1;
 for i = 1:paramDims(1)
     for j = 1:paramDims(2)
         
-        f_max = params{i,j}{1};        
-        t_max = params{i,j}{2};
-        h_i = params{i,j}{3};
-        h_w = params{i,j}{4};
-        t0 = params{i,j}{5};
-        pulseType = params{i,j}{6};
+        % for all iterations but the first, see if any key model parameters
+        % changed since the last run
+        if i + j ~= 2            
+            if f_max == params{i,j}{1} && t_max == params{i,j}{2} && h_i == params{i,j}{3} && h_w == params{i,j}{4}
+                % give output
+                fprintf("Parameters unchanged- skipping model!\n")
+                
+                % set parameters
+                t0 = params{i,j}{5};
+                pulseType = params{i,j}{6};
+                
+                % run model
+                [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,G_scaled);
+            else
+                % give output
+                fprintf("Parameters updated- running model!\n")
+                
+                % set parameters
+                f_max = params{i,j}{1};        
+                t_max = params{i,j}{2};
+                h_i = params{i,j}{3};
+                h_w = params{i,j}{4};
+                t0 = params{i,j}{5};
+                pulseType = params{i,j}{6};
+                
+                % run model
+                [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType);
+            end
+        else
+            % give output
+            fprintf("First iteration- running model!\n")
+            
+            % set parameters
+            f_max = params{i,j}{1};        
+            t_max = params{i,j}{2};
+            h_i = params{i,j}{3};
+            h_w = params{i,j}{4};
+            t0 = params{i,j}{5};
+            pulseType = params{i,j}{6};
+            
+            % run model
+            [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType);
+        end
         
-        % call the model function
-        [model,dGdt,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType);
+        % get model time axis
         t = model.t;
         
         % set the correct subplot
