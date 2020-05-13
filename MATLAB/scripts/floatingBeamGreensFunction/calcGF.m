@@ -1,4 +1,4 @@
-function [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,varargin)
+function [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,scale,varargin)
 
 % get max pressure and moment
 P_max = 916 * 9.8 * h_i;
@@ -13,7 +13,7 @@ model = loadParameters(L,f_max,t_max,h_i,h_w);
 % in general, run the model unless a G_scaled variable is provided to the function
 % (this is useful for convolving a single green's function with multiple
 % soruce time functions
-if nargin < 10
+if nargin < 11
     % run model
     G = semiAnalyticGreenFunction(model);
 
@@ -61,6 +61,9 @@ if t0 ~= 0 && pulseType ~= "none"
             stf = erfStf;
         end
         
+        % scale if desired
+        stf = stf*scale;
+        
         % convolve with Green's function
         G_scaled_pad = zeros(size(new_t));
         G_scaled_pad(ceil(end/2):end) = G_scaled;
@@ -83,7 +86,10 @@ if t0 ~= 0 && pulseType ~= "none"
             [~,offset_index] = max(find(gausStf(1:end/2) < 1e-5));
             gausStf = gausStf(offset_index:end-offset_index);
             stf = [zeros(1,offset_index),gausStf,zeros(1,offset_index-1)];            
-                    
+                   
+            % scale if desired
+            stf = stf*scale;
+            
             % convolve with Green's function
             G_stf = ifft(fft(G_scaled).*fft(stf));
         catch

@@ -2,10 +2,13 @@ import os
 import multiprocessing
 from multiprocessing import Manager
 import time
+import numpy as np
 
 import obspy
 from obspy import read
 import obspyh5
+
+import h5py
 
 # functions to construct filename string of file to load
 def getFname(path,stat,chan,startTime):
@@ -61,7 +64,7 @@ def makeTemplate(path,stat,chan,tempLims,freq,filtType):
 
     # trim the data to the time ranges of template for each band
     stTemp.trim(starttime=tempLims[0],endtime=tempLims[1])
-
+    #stTemp.plot()
     return stTemp
 
 # parallelized implementation of the above
@@ -84,7 +87,6 @@ def makeTemplateList(tempH5,buff,path,stat,chan,freq,filtType,readPar,nproc):
 
     # make empty containers for templates and names
     tempTimes = []
-    templates = []
     template_names = []
 
     # get template starttimes, endtimes and index
@@ -126,11 +128,13 @@ def makeTemplateList(tempH5,buff,path,stat,chan,freq,filtType,readPar,nproc):
                 st += makeTemplate(path,s,chan,tempLims,freq,filtType)
             #print(st)
             #st.plot()
-            templates.append(st)
+            st.write('templates/' + str(freq[0]) + '-' + str(freq[1]) + 'Hz/template_'+str(t)+'.h5','H5',mode='a')
             template_names.append(s.lower()+"temp"+str(t))
 
     # stop timer and give output
     runtime = time.time() - timer
-    print("Loaded " + str(len(templates)) + " templates in " + str(runtime) + " seconds")
+    #print("Loaded " + str(len(templates)) + " templates in " + str(runtime) + " seconds")
 
-    return templates,template_names
+    # save list of template names
+    hf = h5py.File('template_names.h5','w')
+    hf.create_dataset('template_names',data=np.array(template_names,dtype='S'))

@@ -1,17 +1,19 @@
 % set parameters which stay constant
-sourceType = 'moment';
 statDist = 10000;
 L = 1e7;
 f_max = 1;
-t_max = 1000;
-h_i = 100;
-h_w = 1000;
+t_max = 500;
+h_i = 350;
+h_w = 800;
+%t0 = 6;
+sourceType = 'moment';
+pulseType = 'half up';
+scale = 0.025;
 
 % manually set parameters for each subplot
-params = {{f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,10,"half up"},{f_max,t_max,h_i,h_w,10,"half down"},{f_max,t_max,h_i,h_w,10,"full"};...
-         {f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,50,"half up"},{f_max,t_max,h_i,h_w,50,"half down"},{f_max,t_max,h_i,h_w,50,"full"};...
-         {f_max,t_max,h_i,h_w,0,"none"},{f_max,t_max,h_i,h_w,100,"half up"},{f_max,t_max,h_i,h_w,100,"half down"},{f_max,t_max,h_i,h_w,100,"full"}};
-     
+params = {{f_max,t_max,h_i,h_w,statDist,1,pulseType,scale};{f_max,t_max,h_i,h_w,statDist,3,pulseType,scale};...
+          {f_max,t_max,h_i,h_w,statDist,6,pulseType,scale};{f_max,t_max,h_i,h_w,statDist,10,pulseType,scale}};
+        
 % get dimensions of parameter matrix
 paramDims = size(params);
 
@@ -25,16 +27,17 @@ for i = 1:paramDims(1)
         % for all iterations but the first, see if any key model parameters
         % changed since the last run
         if i + j ~= 2            
-            if f_max == params{i,j}{1} && t_max == params{i,j}{2} && h_i == params{i,j}{3} && h_w == params{i,j}{4}
+            if f_max == params{i,j}{1} && t_max == params{i,j}{2} &&...
+               h_i == params{i,j}{3} && h_w == params{i,j}{4} && statDist == params{i,j}{5}
                 % give output
                 fprintf("Parameters unchanged- skipping model!\n")
                 
                 % set parameters
-                t0 = params{i,j}{5};
-                pulseType = params{i,j}{6};
-                
+                t0 = params{i,j}{6};
+                pulseType = params{i,j}{7};
+
                 % run model
-                [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,G_scaled);
+                [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,scale,G_scaled);
             else
                 % give output
                 fprintf("Parameters updated- running model!\n")
@@ -44,26 +47,29 @@ for i = 1:paramDims(1)
                 t_max = params{i,j}{2};
                 h_i = params{i,j}{3};
                 h_w = params{i,j}{4};
-                t0 = params{i,j}{5};
-                pulseType = params{i,j}{6};
+                statDist = params{i,j}{5};
+                t0 = params{i,j}{6};
+                pulseType = params{i,j}{7};
+                scale = params{i,j}{8};
                 
                 % run model
-                [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType);
+                [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,scale);
             end
         else
             % give output
             fprintf("First iteration- running model!\n")
             
-            % set parameters
             f_max = params{i,j}{1};        
             t_max = params{i,j}{2};
             h_i = params{i,j}{3};
             h_w = params{i,j}{4};
-            t0 = params{i,j}{5};
-            pulseType = params{i,j}{6};
+            statDist = params{i,j}{5};
+            t0 = params{i,j}{6};
+            pulseType = params{i,j}{7};
+            scale = params{i,j}{8};
             
             % run model
-            [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType);
+            [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,scale);
         end
         
         % get model time axis
@@ -74,7 +80,7 @@ for i = 1:paramDims(1)
         subplot(paramDims(1),paramDims(2),p)
         plot(t,detrend(dGdt))
         
-        title({"f_{max}: " + f_max + " Hz     h_i: " + h_i + " m     h_w: " + h_w + " m     t_0 = " + t0 + " s",''})
+        title({"Distance: " + round(statDist/1000) + " km     h_i: " + h_i + " m     h_w: " + h_w + " m     t_0 = " + t0 + " s"})
         xlabel('Time (s)'); ylabel('Vertical Velocity (m/s)');
         xlim([0,t_max])
         
@@ -82,7 +88,7 @@ for i = 1:paramDims(1)
         subplot(paramDims(1),paramDims(2),p)
         plot(t,stf)
         
-        title({"f_{max}: " + f_max + " Hz     h_i: " + h_i + " m     h_w: " + h_w + " m     t_0 = " + t0 + " s",''})
+        title({"Distance: " + round(statDist/1000) + " km     h_i: " + h_i + " m     h_w: " + h_w + " m     t_0 = " + t0 + " s"})
         xlabel('Time (s)'); ylabel('Moment/m_0');
         xlim([0,t_max])
         
