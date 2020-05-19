@@ -1,5 +1,5 @@
-function  [x_keep,L_keep,count,alpha_keep,accept] = mcmc(func,data,x0,xStep,xBounds,...
-                 sigma,numIt,L0)
+function  [x_keep,L_keep,count,alpha_keep,accept,M_fracs] = mcmc(func,data,x0,xStep,xBounds,...
+                 sigma,numIt,L0,liklihoodType)
 %
 % [x_keep, L_keep, count] = mcmc(func,data,x0,xstep,sigma,Niter,varargin)
 %
@@ -43,6 +43,7 @@ x_keep = zeros(numParams,numIt);
 L_keep = zeros(1,numIt); 
 alpha_keep = zeros(1,numIt); 
 accept = zeros(1,numIt);
+M_fracs = zeros(1,numIt);
 
 % set a few parameters
 x = x0;
@@ -58,15 +59,13 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
     xProp = x + xStep.* 2 .* (rand(1,numParams)-0.5);
     
     % check bounds
-    if (max(xProp > xBounds(:,1)) & max(xProp < xBounds(:,2)))
+    if (min(xProp' > xBounds(:,1)) & min(xProp' < xBounds(:,2)))
 
         % generate prediction for proposal
-        [dProp,dataSlide] = fun(xProp,data);
-
-        % calculate likelihood
-        normArg = (dataSlide-dProp)./dataSlide;
-        normArg(isnan(normArg)) = 1;
-        Lprop = -0.5/sigma^2 * norm(normArg)^2;
+        [dProp,dataAligned,M_frac] = fun(xProp,data);
+        
+        % calculate likelihood      
+        Lprop = liklihood(dProp,dataAligned,sigma,liklihoodType);
 
         % make random number to compare to ratio of likelihoods
         u = rand;
@@ -84,9 +83,12 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
         end 
     end
     
+    % save results
+    M_fracs(k) = M_frac;
     x_keep(:,k) = x;
     L_keep(k) = L;
     alpha_keep(k) = H;
+    
 end
 
 end

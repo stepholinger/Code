@@ -8,7 +8,7 @@ dataStruct = rdmseed(fname);
 % set model parameters
 L = 1e7;
 f_max = 1;
-t_max = 1000;
+t_max = 125;
 h_i = 350;
 h_w = 800;
 statDist = 10000;
@@ -56,6 +56,6 @@ end
 %ylim([-1,1])
 
 % make plot
-plot(model.t(1:500),dGdt(1:500))
+plot(model.t,dGdt)
 hold on;
-plot(model.t(1:500),eventTrace(1:500))
+plot(model.t,eventTrace)

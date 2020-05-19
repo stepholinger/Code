@@ -1,4 +1,4 @@
-function [dGdt,data] = GF_func_mcmc(params,data)
+function [dGdt,data,M_frac] = GF_func_mcmc(params,data)
 
 % this function is for use with P. Segall's MCMC code- instead of actually
 % calling the Green's function model, it pulls already created Green's
@@ -47,9 +47,15 @@ G_stf = ifft(fft(G_pad).*fft(stf));
 % take time derivative to get velocity seismogram
 dGdt = gradient(G_stf,model.dt);
 
+% get ratio of applied moment to max bending moment
+M_frac = max(data)/max(dGdt);
+
 % normalize and trim
 dGdt = dGdt / max(dGdt);
 dGdt = dGdt(ceil(end/2):end);
+
+% normalize data
+data = data/max(data);
 
 % find index of max value
 [~,dataMaxIdx] = max(data);
@@ -64,5 +70,4 @@ else
     slide = dataMaxIdx-modelMaxIdx;
     dGdt = [zeros(1,slide),dGdt(1:end-slide)];
 end    
-
 end
