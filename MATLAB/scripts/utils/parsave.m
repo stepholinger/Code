@@ -1,3 +1,3 @@
-function parsave(filename,detectionsToday,lagTimes,xcorrCoefs)
-    save(filename,'detectionsToday','lagTimes','xcorrCoefs');
+function parsave(filename,resultStruct)
+    save(filename,'-struct',"resultStruct");
 end

@@ -4,6 +4,7 @@ from multiprocessing import Manager
 import time
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import obspy
 from obspy import read
@@ -16,16 +17,42 @@ from eqcorrscan.core.match_filter import read_detections
 from eqcorrscan.core.match_filter import Tribe
 from eqcorrscan.core.match_filter import Template
 from eqcorrscan.core.match_filter import match_filter
+from eqcorrscan.utils.clustering import re_thresh_csv
+
+# choose whether to rethreshold
+rethresh = 1
+oldThreshHigh = 15
+newThreshHigh = 18
+oldThreshLow = 5
+newThreshLow = 5
 
 # set distance between detections in each band to count as event
 tolerance = 60
 
-# read in detections
-detHigh = read_detections('templateDetections_1-10Hz.csv')
-detLow = read_detections('templateDetections_0.01-1Hz.csv')
+if rethresh:
+    # read in and rethreshold detections
+    print("mmm... rethreshing!")
+    detHigh = re_thresh_csv('templateDetections_1-10Hz.csv',old_thresh=oldThreshHigh,new_thresh=newThreshHigh,chan_thresh=1)
+    detLow = re_thresh_csv('templateDetections_0.01-1Hz.csv',old_thresh=oldThreshLow,new_thresh=newThreshLow,chan_thresh=1)
+    detHighTimes = [f.detect_time for f in detHigh]
+    detLowTimes = [f.detect_time for f in detLow]
 
-detHighTimes = [f.detect_time for f in detHigh]
-detLowTimes = [f.detect_time for f in detLow]
+    # write out new files after rethresholding
+    for d in detHigh:
+        d.threshold_input = newThreshHigh
+        d.write('templateDetections_1-10Hz_rethresh.csv',append=True)
+    for d in detLow:
+        d.threshold_input = newThreshLow
+        d.write('templateDetections_0.01-1Hz_rethresh.csv',append=True)
+
+else:
+
+    # read in detections
+    detHigh = read_detections('templateDetections_1-10Hz.csv')
+    detLow = read_detections('templateDetections_0.01-1Hz.csv')
+
+    detHighTimes = [f.detect_time for f in detHigh]
+    detLowTimes = [f.detect_time for f in detLow]
 
 # keep low frequency detections if there is a high frequency detection within the tolerance
 events = []
@@ -62,7 +89,7 @@ for i in range(len(detLow)-1):
     diffs = abs(np.subtract(detLowTimes[i],detHighTimesToday))
 
     # save low frequency detections if minimum difference is less than threshold time
-    if min(diffs) < tolerance:
+    if any(diffs) and min(diffs) < tolerance:
         events.append(detLow[i])
     #print(events)
 
@@ -81,13 +108,20 @@ for i in range(len(events)):
 # sort based on amount by which detection value exceeded threshold
 sortIdx = np.argsort(threshDiff)
 sortIdx = np.flip(sortIdx)
-print(sortIdx)
+#print(sortIdx)
 eventsQualitySort = []
 for f in sortIdx:
     eventsQualitySort.append(events[f])
 
 #print(events)
-for eventsQualitySort in eventsQualitySort:
-    eventsQualitySort.write('templateEventsQualitySort.csv',append=True)
-for events in events:
-    events.write('templateEventsTimeSort.csv',append=True)
+for EQS in eventsQualitySort:
+    EQS.write('templateEventsQualitySort.csv',append=True)
+for e in events:
+    e.write('templateEventsTimeSort.csv',append=True)
+
+# make histogram of results
+eventTimes = [e.detect_time.date for e in events]
+print(eventTimes)
+plt.hist(eventTimes,720)
+plt.show()
+

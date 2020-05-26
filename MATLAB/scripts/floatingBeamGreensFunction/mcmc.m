@@ -1,6 +1,6 @@
 function  [x_keep,L_keep,count,alpha_keep,accept,M_fracs] = mcmc(func,data,x0,xStep,xBounds,...
-                 sigma,numIt,L0,liklihoodType)
-%
+                 sigma,numIt,M_frac_0,L0,liklihoodType)
+
 % [x_keep, L_keep, count] = mcmc(func,data,x0,xstep,sigma,Niter,varargin)
 %
 % subroutine for MCMC sampling using Metropolis-Hasting w/ normal
@@ -48,6 +48,8 @@ M_fracs = zeros(1,numIt);
 % set a few parameters
 x = x0;
 L = L0;
+M = M_frac_0;
+H = NaN;
 
 % make counter and start iteration
 count = 0;
@@ -79,12 +81,13 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
              count = count+1;
              x = xProp;
              L = Lprop;
+             M = M_frac;
              accept(k) = 1;
         end 
     end
     
     % save results
-    M_fracs(k) = M_frac;
+    M_fracs(k) = M;
     x_keep(:,k) = x;
     L_keep(k) = L;
     alpha_keep(k) = H;

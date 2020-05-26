@@ -32,13 +32,16 @@ dGdx = dGdx * M_max;
 dGdx = dGdx(locIdx,:);
 
 % make error function pulse
-new_t = [-fliplr(model.t),model.t(2:end)];
-erfStf = (erf(new_t/t0)+1)/2;
-[~,offset_index] = max(find(erfStf < 1e-5));
-erfOffset = -(max(new_t) + new_t(offset_index));
-erfStf = (erf((new_t-erfOffset)/t0)+1)/2;
-stf = erfStf;
-
+try
+    new_t = [-fliplr(model.t),model.t(2:end)];
+    erfStf = (erf(new_t/t0)+1)/2;
+    [~,offset_index] = max(find(erfStf < 1e-5));
+    erfOffset = -(max(new_t) + new_t(offset_index));
+    erfStf = (erf((new_t-erfOffset)/t0)+1)/2;
+    stf = erfStf;
+catch
+    error("Use a larger t_max for t0 = " + t0)
+end
 % convolve stf and green's function
 G_pad = zeros(size(new_t));
 G_pad(ceil(end/2):end) = dGdx;

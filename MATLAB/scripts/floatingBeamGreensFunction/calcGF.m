@@ -1,4 +1,5 @@
-function [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,sourceType,t0,pulseType,scale,varargin)
+function [model,dGdt,G_scaled,stf] = calcGF(L,f_max,t_max,h_i,h_w,statDist,...
+                                            sourceType,t0,pulseType,scale,varargin)
 
 % get max pressure and moment
 P_max = 916 * 9.8 * h_i;

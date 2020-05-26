@@ -1,4 +1,4 @@
-function plot_fit_wave(t,eventAlign,sigma,L_fit,M_frac_fit,G_fit,xFit,numIt,xStep,accept,p)
+function plot_fit_wave(t,eventAlign,sigma,L_fit,M_frac_fit,G_fit,xFit,numIt,xStep,p,accept,L_type)
 
 % plot resulting waveform and starting waveform
 plot(t,G_fit);
@@ -17,7 +17,8 @@ text(mk*4/3,k/3,string("MCMC parameters" + newline + "--------------------------
                        "h_i step: " + xStep(1) + " m    h_w step: " + xStep(2) + " m" + newline + ...
                        "X_{stat} step: " + xStep(3) + " m    t_0 step: " + xStep(4) + " s" + newline + ...
                        "Number of iterations: " + numIt + newline + "Sigma: " + sigma + newline + ...
-                       "L: " + L_fit + newline + "Accepted " + round(100*sum(accept)/length(accept)) + "% of proposals"))                   
+                       "Liklihood function: " + L_type + newline + "L: " + L_fit + newline + "Accepted " + ...
+                       round(100*sum(accept)/length(accept)) + "% of proposals"))                   
 l = legend("MCMC best-fit model","Data");
 set(l,'Location','southwest');
 set(gcf,'Position',[10 10 1000 800])
