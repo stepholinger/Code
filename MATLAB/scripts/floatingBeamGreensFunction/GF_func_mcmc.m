@@ -35,7 +35,7 @@ dGdx = dGdx(locIdx,:);
 try
     new_t = [-fliplr(model.t),model.t(2:end)];
     erfStf = (erf(new_t/t0)+1)/2;
-    [~,offset_index] = max(find(erfStf < 1e-5));
+    [~,offset_index] = max(find(erfStf < 1e-3));
     erfOffset = -(max(new_t) + new_t(offset_index));
     erfStf = (erf((new_t-erfOffset)/t0)+1)/2;
     stf = erfStf;

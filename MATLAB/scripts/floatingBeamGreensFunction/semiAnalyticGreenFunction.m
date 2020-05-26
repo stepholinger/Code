@@ -1,6 +1,6 @@
 function G = semiAnalyticGreenFunction(model)
 
-parRc = 0;
+par = 1;
 
 % set impulse magnitude to pressure magnitude (this should be -1)
 Q = model.P;
@@ -8,9 +8,10 @@ Q = model.P;
 % make matrix for storing output
 G = zeros(model.nx,model.nt);
 
-if parRc
-    parpool("local",str2num(getenv("SLURM_CPUS_PER_TASK")));
-    poolobj = gcp;  
+if par
+    %parpool("local",str2num(getenv("SLURM_CPUS_PER_TASK")));
+    %parpool;
+    %poolobj = gcp;  
     
     % use wavenumber vector to calculate solution at each time step
     parfor i = 1:model.nt

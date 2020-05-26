@@ -63,8 +63,15 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
     % check bounds
     if (min(xProp' > xBounds(:,1)) & min(xProp' < xBounds(:,2)))
 
+        % deal with log t0
+        xProp(4) = 10^(xProp(4));
+        
         % generate prediction for proposal
         [dProp,dataAligned,M_frac] = fun(xProp,data);
+        
+        % deal with log t0
+        xProp(4) = log10(xProp(4));
+        
         
         % calculate likelihood      
         Lprop = liklihood(dProp,dataAligned,sigma,liklihoodType);
@@ -76,7 +83,7 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
         H = exp(Lprop-L);
         
         % accept proposal 
-        if (L == 0 || u <= min([H,1]))
+        if (L == 0 || u <= min([H,1])) && M_frac < 1
              fprintf("Accepted proposal ( " + u + " < " + min([H,1]) +")\n")
              count = count+1;
              x = xProp;
