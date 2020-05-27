@@ -1,4 +1,4 @@
-function plot_M_frac(x_keep,M_frac,M_fit,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins)
+function plot_M_frac(x_keep,M_frac,M_fit,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins,path)
 
 % make dscatter density plot of results
 for i = 1:length(paramsVaried)
@@ -56,8 +56,8 @@ for i = 1:length(paramsVaried)
     xticklabels(ax3,{})
     yticklabels(ax3,{})
 
-    saveas(gcf,"/home/setholinger/Documents/Projects/PIG/modeling/mcmc/run" + ... 
-               p + "_" + paramLabels(paramsVaried(i)) + "-" + "Mfrac" + "_dscatter.png")
+    saveas(gcf,path + "run" + p + "_" + paramLabels(paramsVaried(i)) + ...
+               "-" + "Mfrac" + "_dscatter.png")
     close(gcf)
 
 end

@@ -1,3 +1,6 @@
+% set output path
+path = "/home/setholinger/Documents/Projects/PIG/modeling/mcmc/RC/";
+
 % set data parameters
 statDist = 10000;
 t0 = 5.5;
@@ -49,7 +52,7 @@ xStepVect = {[100,100,1000,log10(50),0,0]};
 xBounds = [0,1000;
            0,1000;
            0,100000;
-           0,2;
+           -1,2;
            0,f_max+1;
            0,t_max+1;];
 sigmaVect = [16];
@@ -58,7 +61,7 @@ numIt = 1000;
 L_type_vect = ["modified"];
 axisLabels = ["Ice thickness (m)", "Water depth (m)", "X_{stat} (km)","t_0 (s)"];
 paramLabels = ["h_i","h_w","Xstat","t0"];
-maxNumBins =  200;
+maxNumBins =  100;
 
 try
     parpool;
@@ -128,6 +131,9 @@ for p = 1:length(sigmaVect)
         % convert X_stat to km
         x_keep(3,:) = x_keep(3,:)/1000;
         
+        % 'unlog' t0
+        x_keep(4,:) = 10.^x_keep(4,:);
+        
         % save results
         resultStruct = struct('xFit',xFit,'L_fit',L_fit,'G_fit',G_fit,'G_0',G_0,'L_keep',L_keep,...
                               'x_keep',x_keep,'x0',x0,'xStep',xStep,'M_frac',M_frac,'L_type',L_type,...
@@ -135,24 +141,29 @@ for p = 1:length(sigmaVect)
         parsave("run" + p + "_results.mat",resultStruct)   
         
         % call plotting functions
-        plot_bivar(x_keep,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins)
-        plot_M_frac(x_keep,M_frac,M_fit,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins)
-        plot_start_wave(t,eventAlign,sigma,L0,M_frac_0,G_0,x0,numIt,xStep,p)
-        plot_fit_wave(t,eventAlign,sigma,L_fit,M_fit,G_fit,xFit,numIt,xStep,p,accept,L_type)
+        plot_bivar(x_keep,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins,path)
+        plot_M_frac(x_keep,M_frac,M_fit,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins,path)
+        plot_start_wave(t,eventAlign,sigma,L0,M_frac_0,G_0,x0,numIt,xStep,p,path)
+        plot_fit_wave(t,eventAlign,sigma,L_fit,M_fit,G_fit,xFit,numIt,xStep,p,accept,L_type,path)
 
     else
 
         % convert X_stat to km
         x_keep(3,:) = x_keep(3,:)/1000;
         
+        % 'unlog' t0
+        x_keep(4,:) = 10.^x_keep(4,:);
+        
         % save results
         resultStruct = struct('G_0',G_0,'L_keep',L_keep,'x_keep',x_keep,'x0',x0,...
                               'xStep',xStep,'M_frac',M_frac,'xBounds',xBounds,'L_type',L_type,...
-                              'sigma',sigma,'numIt',numIt,'labels',paramLabels);
-        parsave("run" + p + "_results.mat",resultStruct)
+                              'sigma',sigma,'numIt',numIt,'labels',paramLabels,'accept',accept,...
+                              'f_max',f_max,'t_max',t_max);
+        parsave(path + "run" + p + "_results.mat",resultStruct)
     
         % call plotting functions
-        plot_multivar(sigma,accept,xStep,x_keep,M_frac,x0,numIt,p,paramsVaried,axisLabels,maxNumBins,L_type)
+        plot_multivar(sigma,accept,xStep,x_keep,M_frac,x0,numIt,....
+                      p,paramsVaried,axisLabels,maxNumBins,L_type,path,f_max,t_max)
     end
     
 end

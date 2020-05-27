@@ -1,4 +1,4 @@
-function plot_start_wave(t,eventAlign,sigma,L0,M_frac_0,G_0,x0,numIt,xStep,p)
+function plot_start_wave(t,eventAlign,sigma,L0,M_frac_0,G_0,x0,numIt,xStep,p,path)
 
 % plot resulting waveform and starting waveform
 plot(t,G_0);
@@ -23,7 +23,7 @@ l = legend("MCMC starting model","Data");
 set(l,'Location','southwest');
 set(gcf,'Position',[10 10 1000 800])
 hold off
-saveas(gcf,"/home/setholinger/Documents/Projects/PIG/modeling/mcmc/run" + p + "_start_wave.png")
+saveas(gcf,path + "run" + p + "_start_wave.png")
 close(gcf)
 
 end

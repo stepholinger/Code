@@ -1,7 +1,10 @@
+% set output path
+path = "/n/home01/setholinger/mcmc_output";
+
 % set data parameters
 statDist = 10000;
 t0 = 5.5;
-f_max = 0.5;
+f_max = 10;
 t_max = 250;
 t = 1/(2*f_max):1/(2*f_max):t_max;
 nt = t_max*(2*f_max);
@@ -44,8 +47,8 @@ end
 % x0 goes like this: [h_i,h_w,statDist,t0,f_max,t_max,dataMaxIdx]
 % f_max, t_max, and dataMaxIdx MUST have 0 step size in xStep
 % t0 is log now! so the value here is like 10^x
-x0_vect = {[350,800,10000,1,0.5,t_max]};
-xStepVect = {[100,100,1000,0.5,0,0]};
+x0_vect = {[350,800,10000,1,f_max,t_max]};
+xStepVect = {[100,100,1000,log10(50),0,0]};
 xBounds = [0,1000;
            0,1000;
            0,100000;
@@ -148,8 +151,8 @@ for p = 1:length(sigmaVect)
         % save results
         resultStruct = struct('G_0',G_0,'L_keep',L_keep,'x_keep',x_keep,'x0',x0,...
                               'xStep',xStep,'M_frac',M_frac,'xBounds',xBounds,'L_type',L_type,...
-                              'sigma',sigma,'numIt',numIt,'labels',paramLabels);
-        parsave("run" + p + "_results.mat",resultStruct)
+                              'sigma',sigma,'numIt',numIt,'labels',paramLabels,'accept',accept);
+        parsave(path + "run" + p + "_results.mat",resultStruct)
     
         % call plotting functions
         plot_multivar(sigma,accept,xStep,x_keep,M_frac,x0,numIt,p,paramsVaried,axisLabels,maxNumBins,L_type)

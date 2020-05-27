@@ -71,8 +71,7 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
         
         % deal with log t0
         xProp(4) = log10(xProp(4));
-        
-        
+              
         % calculate likelihood      
         Lprop = liklihood(dProp,dataAligned,sigma,liklihoodType);
 

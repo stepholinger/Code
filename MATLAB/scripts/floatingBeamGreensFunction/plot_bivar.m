@@ -1,4 +1,4 @@
-function plot_bivar(x_keep,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins)
+function plot_bivar(x_keep,xFit,numIt,p,paramsVaried,axisLabels,paramLabels,numBins,path)
 
 % get max value for histogram plots
 h1 = histcounts(x_keep(paramsVaried(1),:),numBins);
@@ -54,8 +54,8 @@ xticklabels(ax3,{})
 yticklabels(ax3,{})
 
 % save plots
-saveas(gcf,"/home/setholinger/Documents/Projects/PIG/modeling/mcmc/run" + ...
-           p + "_" + paramLabels(paramsVaried(1)) + "-" + paramLabels(paramsVaried(2)) + "_dscatter.png")
-close(gcf)
+%saveas(gcf,path + "run" + p + "_" + paramLabels(paramsVaried(1)) + ...
+%       "-" + paramLabels(paramsVaried(2)) + "_dscatter.png")
+%close(gcf)
 
 end

@@ -1,0 +1,43 @@
+function xFit = getFitLog(x_keep,paramsVaried,numBins,x0,logFlag)
+    
+    % set xFit
+    
+
+    % get matrix back from dscatter
+    figure(2) 
+    if logFlag == "x"
+        [~,F,col] = dscatter(x_keep(paramsVaried(1),:)',x_keep(paramsVaried(2),:)','BINS',[numBins numBins],'LOGX',true);    
+    elseif logFlag == "y"
+        [~,F] = dscatter(x_keep(paramsVaried(1),:)',x_keep(paramsVaried(2),:)','BINS',[numBins numBins],'LOGY',true);    
+    elseif logFlag == "both"
+        [~,F] = dscatter(x_keep(paramsVaried(1),:)',x_keep(paramsVaried(2),:)','BINS',[numBins numBins],'LOGX',true,'LOGY',true);    
+    end
+    close(gcf);
+    
+    [~,fitIdx] = max(col);
+    
+    
+    
+    
+    
+    % find indices of max value from dscatter
+    [param2_ind,param1_ind] = ind2sub(size(F),find(F == max(F,[],'all')));
+    ind = [param1_ind param2_ind];
+    xFit = x0;
+      
+    % get max and min values of the log parameter
+
+    
+    % get max and min values of the nonlog parameter
+    var_min = min(x_keep(paramsVaried(2),:));
+    var_max = max(x_keep(paramsVaried(2),:));
+    var_range = var_max - var_min;
+    var_step = var_range/numBins;
+
+    % make axis of values 
+    coords = var_min:var_step:var_max;
+
+    % find value at index of max F
+    xFit(paramsVaried(2)) = coords(ind(2));
+    
+end
