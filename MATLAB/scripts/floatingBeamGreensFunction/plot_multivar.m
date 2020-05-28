@@ -147,7 +147,7 @@ text(0,1,string("MCMC parameters" + newline + "----------------------------" + n
 set(gcf,'Position',[10 10 1200 1000])
 sgtitle("Result of MCMC inversion after " + numIt + " iterations" + newline)
 
-saveas(gcf,path + "run" + p + "_multivar_dscatter.png")
-close(gcf)
+%saveas(gcf,path + "run" + p + "_multivar_dscatter.png")
+%close(gcf)
 
 end

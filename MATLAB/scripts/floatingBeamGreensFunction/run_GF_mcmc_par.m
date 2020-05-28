@@ -1,5 +1,5 @@
 % set output path
-path = "/home/setholinger/Documents/Projects/PIG/modeling/mcmc/RC/";
+path = "/home/setholinger/Documents/Projects/PIG/modeling/mcmc/";
 
 % set data parameters
 statDist = 10000;
@@ -48,15 +48,17 @@ end
 % f_max, t_max, and dataMaxIdx MUST have 0 step size in xStep
 % t0 is log now! so the value here is like 10^x
 x0_vect = {[350,800,10000,1,f_max,t_max]};
-xStepVect = {[100,100,1000,log10(50),0,0]};
+xStepVect = {[25,25,500,log10(1.1885),0,0],...
+             [100,100,2000,log10(1.9953),0,0],...
+             [400,400,8000,log10(15.8489),0,0]};
 xBounds = [0,1000;
            0,1000;
-           0,100000;
+           0,20000;
            -1,2;
            0,f_max+1;
            0,t_max+1;];
-sigmaVect = [16];
-t_max_vect = [t_max];
+sigmaVect = [20,20,20];
+t_max_vect = [t_max,t_max,t_max];
 numIt = 1000;
 L_type_vect = ["modified"];
 axisLabels = ["Ice thickness (m)", "Water depth (m)", "X_{stat} (km)","t_0 (s)"];
