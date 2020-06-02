@@ -9,6 +9,7 @@ Q = model.P;
 G = zeros(model.nx,model.nt);
 
 if par
+    
     %parpool("local",str2num(getenv("SLURM_CPUS_PER_TASK")));
     %parpool;
     %poolobj = gcp;  

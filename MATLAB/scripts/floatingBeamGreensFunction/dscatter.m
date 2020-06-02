@@ -28,6 +28,8 @@ function [hAxes,F,col] = dscatter(X,Y, varargin)
 %   means that the smoothing is over 20 bins around a given point.
 %
 %   DSCATTER(...,'LOGX',true) uses a log scale for the xaxis.
+%   
+%   DSCATTER(...,'LOGY',true) uses a log scale for the yaxis.
 %
 %   Examples:
 %

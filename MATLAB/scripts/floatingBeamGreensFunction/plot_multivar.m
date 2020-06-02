@@ -17,57 +17,77 @@ for i = 1:numParams
                 numBins = maxNumBins;
             end
             
-            % get point with max density for current variable pair
+            % get point with max density for current variable pair- use log
+            % version for t0 (parameter 4)
             if paramsVaried(j) == 4
                 xFit = getFitLog(x_keep,[paramsVaried(j) paramsVaried(i)],numBins,x0,'x');
             else
                 xFit = getFit(x_keep,[paramsVaried(j) paramsVaried(i)],numBins,x0);
             end
-            % make dscatter density plot of results
+            
+            % get correct subplot indices
             figInd = sub2ind([numPanelSide,numPanelSide],j,i);
             subplot(numPanelSide,numPanelSide,figInd);           
-   
+            
+            % make dscatter density plot of results- use log
+            % version for t0 (parameter 4)
             dscatter(x_keep(paramsVaried(j),:)',x_keep(paramsVaried(i),:)','BINS',[numBins,numBins]);
             if paramsVaried(j) == 4
                 dscatter(x_keep(paramsVaried(j),:)',x_keep(paramsVaried(i),:)','BINS',[numBins,numBins],'LOGX',true);
-                xticks([1e-2 1e-1 1e0 1e1 1e2]);
-                xticklabels({'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}'})
+                xticks([1e-2 0.05 1e-1 0.5 1e0 5 1e1 50 1e2]);
+                xticklabels({'0.01','0.05','0.1','0.5','1','5','10','50','100'})
             end
-
+            
+            % set axes positions
             ax = gca;
             ax.YAxisLocation = "right";
             ax.XAxisLocation = "top";
+            
+            % plot dashed red lines intersecting at max density point
             xline(xFit(paramsVaried(j)),"r--");
             yline(xFit(paramsVaried(i)),"r--");
+            
+            % set axes limits based on range of values 
             xlim([min(x_keep(paramsVaried(j),:)),max(x_keep(paramsVaried(j),:))]);
             ylim([min(x_keep(paramsVaried(i),:)),max(x_keep(paramsVaried(i),:))]);
+            
+            % force full outlines
             box on;
+           
+            % remove x-axis labels if current subplot does not fall along
+            % edge of plot grid
             if figInd > length(paramsVaried)
                 xticklabels(gca,{})
             else
                 xlabel(axisLabels(j),'Color',[0 0.4470 0.7410])
             end
+            
+            % only plots on the right edge will have y-axis labels (and
+            % these will all be M_0 plots, so remove y labels here) 
             yticklabels(gca,{})
+            
         end
         
     end
 
-    % make histogram
+    % get correct subplot indices for histogram
     histInd = sub2ind([numPanelSide,numPanelSide],i,i);
     subplot(numPanelSide,numPanelSide,histInd);
    
+    % make histogram, using log handling if t0
     if paramsVaried(i) == 4
         [~,edges] = histcounts(log10(x_keep(paramsVaried(i),:)),numBins);
         histogram(x_keep(paramsVaried(i),:),10.^edges,'FaceColor',[0 0.4470 0.7410],...
                  'EdgeColor',[0 0.4470 0.7410],'FaceAlpha',1);
         set(gca,'xscale','log');
-        xticks([1e-2 1e-1 1e0 1e1 1e2]);
-        xticklabels({'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}'})
+        xticks([1e-2 0.05 1e-1 0.5 1e0 5 1e1 50 1e2]);
+        xticklabels({'0.01','0.05','0.1','0.5','1','5','10','50','100'})
     else
         histogram(x_keep(paramsVaried(i),:),numBins,'FaceColor',[0 0.4470 0.7410],...
                  'EdgeColor',[0 0.4470 0.7410],'FaceAlpha',1);
     end
-
+    
+    % set axes limits based on range of values and add labels
     xlim([min(x_keep(paramsVaried(i),:)),max(x_keep(paramsVaried(i),:))]);
     xlabel(axisLabels(i),'Color',[0 0.4470 0.7410])
 end
@@ -81,34 +101,46 @@ for i = 1:numParams
         numBins = maxNumBins;
     end
     
-    % get point with max density for current variable pair
+    % get point with max density for current variable and M_frac
     if paramsVaried(i) == 4
         xFit = getFitLog([x_keep;M_frac],[7 paramsVaried(i)],numBins,[x0 0],'both');
     else
         xFit = getFitLog([x_keep;M_frac],[7 paramsVaried(i)],numBins,[x0 0],'x');
     end
+    
+    % get correct subplot indices
     figInd = sub2ind([numPanelSide,numPanelSide],numPanelSide,i);
     subplot(numPanelSide,numPanelSide,figInd);           
     
-    dscatter(M_frac',x_keep(paramsVaried(i),:)','BINS',[numBins,numBins],'LOGX',true);
-    
-    xticks([1e-2 1e-1 1e0 1e1 1e2]);
-    xticklabels({'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}'})
+    % make scatter plot (M_frac is always plotted on log x axis so variable
+    % labels will be on y axis)- use log handling for both axes if t0
     if paramsVaried(i) == 4
         dscatter(M_frac',x_keep(paramsVaried(i),:)','BINS',[numBins,numBins],'LOGX',true,'LOGY',true);
-        yticks([1e-2 1e-1 1e0 1e1 1e2]);
-        yticklabels({'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}'})
+        yticks([1e-2 0.05 1e-1 0.5 1e0 5 1e1 50 1e2]);
+        yticklabels({'0.01','0.05','0.1','0.5','1','5','10','50','100'})
+    else
+        dscatter(M_frac',x_keep(paramsVaried(i),:)','BINS',[numBins,numBins],'LOGX',true);
     end
+    xticks([1e-2 0.05 1e-1 0.5 1e0 5 1e1 50 1e2]);
+    xticklabels({'0.01','0.05','0.1','0.5','1','5','10','50','100'})
     
+    % set axes positions
     ax = gca;
     ax.YAxisLocation = "right";
-    ax.XAxisLocation = "top";            
+    ax.XAxisLocation = "top";   
+               
+    % plot dashed red lines intersecting at max density point
     xline(xFit(7),"r--");
     yline(xFit(paramsVaried(i)),"r--");
     
+    % set limits based on range of values
     xlim([min(M_frac),max(M_frac)]);
     ylim([min(x_keep(paramsVaried(i),:)),max(x_keep(paramsVaried(i),:))]);
+    
+    % force full box
     box on;
+    
+    % set y-axis label and only set x-axis label if bottom plot
     ylabel(axisLabels(i),'Color',[0 0.4470 0.7410])                
     if i == 1
         xlabel("M_{obs}/M_0",'Color',[0.8500 0.3250 0.0980])
@@ -118,14 +150,14 @@ for i = 1:numParams
     
 end
 
-% make histogram of M_frac
+% make log histogram of M_frac
 subplot(numPanelSide,numPanelSide,numPanelSide*numPanelSide);
 [~,edges] = histcounts(log10(M_frac),numBins);
 histogram(M_frac,10.^edges,'FaceColor',[0.8500 0.3250 0.0980],...
          'EdgeColor',[0.8500 0.3250 0.0980],'FaceAlpha',1);
 set(gca,'xscale','log');
-xticks([1e-2 1e-1 1e0 1e1 1e2]);
-xticklabels({'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}'})
+xticks([1e-2 0.05 1e-1 0.5 1e0 5 1e1 50 1e2]);
+xticklabels({'0.01','0.05','0.1','0.5','1','5','10','50','100'})
 xlim([min(M_frac),max(M_frac)]);
 xlabel("M_{obs}/M_0",'Color',[0.8500 0.3250 0.0980])
 
