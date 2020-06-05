@@ -22,7 +22,7 @@ from eqcorrscan.utils.clustering import re_thresh_csv
 # choose whether to rethreshold
 rethresh = 1
 oldThreshHigh = 15
-newThreshHigh = 18
+newThreshHigh = 15
 oldThreshLow = 5
 newThreshLow = 5
 
@@ -124,4 +124,3 @@ eventTimes = [e.detect_time.date for e in events]
 print(eventTimes)
 plt.hist(eventTimes,720)
 plt.show()
-

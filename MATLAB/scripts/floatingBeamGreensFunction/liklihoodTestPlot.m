@@ -6,12 +6,20 @@ dataStruct = rdmseed(fname);
 trace = extractfield(dataStruct,'d');
 fs = 100;
 f_max = 0.5;
-nt = 125;
-t0 = 5.5;
-
-% resample data to 1 Hz
 fsNew = f_max*2;
-trace = resample(trace,fsNew,100);
+nt = 10000*fsNew;
+
+% deal with under 1 Hz resampling
+if f_max < 0.5
+    fs = fs/(f_max*2);
+    trace = resample(trace,1,fs);
+else
+    trace = resample(trace,fsNew,fs);
+end
+
+% filter if desired
+%[b,a] = butter(4,0.01/(fsNew/2),'low');
+%trace = filtfilt(b,a,trace);
 
 % set event bounds
 startTime = ((15*60+18)*60+50)*fsNew;
@@ -24,8 +32,8 @@ eventTrace = trace(startTime:endTime-1);
 eventTrace = eventTrace - eventTrace(1);
 
 % set parameter combinations
-x0 = [350,800,10000,t0,0.5,125];
-xTest = [350,800,10000,2,0.5,125];
+x0 = [350,800,10000,5.5,f_max,nt];
+xTest = [350,800,10000,5.5,f_max,nt];
 
 % run model
 [G_0,~,~] = GF_func_mcmc(x0,eventTrace);
@@ -33,7 +41,7 @@ xTest = [350,800,10000,2,0.5,125];
 
 % set some stuff
 sigma = 3;
-frontInd = 41;
+frontInd = nt*f_max*2;
 
 % calculate liklihoods
 L_0_norm = liklihood(G_0(1:frontInd),eventAlign(1:frontInd),sigma,'standard');

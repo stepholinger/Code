@@ -7,7 +7,7 @@ import obspy
 import obspyh5
 
 path = "/media/Data/Data/PIG/MSEED/noIR/"
-outPath = "/home/setholinger/Documents/Projects/PIG/detections/energy/"
+outPath = "/home/setholinger/Documents/Projects/PIG/detections/energy/run2/"
 stat = "PIG2"
 chan = "HHZ"
 fileType = "MSEED"
@@ -18,27 +18,32 @@ freqLow = 0.5
 freqHigh = [1,10]
 
 # specify initial search parameters
-prominenceHigh = 0.25
-prominenceLow = 0.25
+prominenceHigh = 0.1
+prominenceLow = 0.1
 
 # allowable distance between low and high frequency detections, in seconds
-tolerance = 60
+tolerance = 120
 
 # specify window to pull template around detection
-buffFront = 2*60
-buffEnd = 3*60
+buffFrontBase = 2*60
+buffEndBase = 3*60
 
 # get all files of desired station and channel
 files = glob.glob(path + stat + "/" + chan + "/*", recursive=True)
 files.sort()
-print(files)
 
-# scan a specific day (use for tuning)
-#day = "2012-02-23"
+# first day is garbage, so remove it
+files = files[1:]
+
+# scan a specific day (for testing)
+#day = "2012-05-20"
 #dayFile = path + stat + "/" + chan + "/" + day + "." + stat + "." + chan + ".noIR.MSEED"
-#files[0] = dayFile
+#files = [dayFile]
 
 for f in files:
+
+    # give some output
+    print("Scanning " + f + "...")
 
     # reset search parameters
     threshHigh = prominenceHigh
@@ -72,50 +77,74 @@ for f in files:
     energyHigh = energyHigh/np.max(energyHigh)
 
     # find maxima in both bands
-    peaksLow,_ = find_peaks(energyLow,prominence=threshLow,distance=fs*60)
-    peaksHigh,_ = find_peaks(energyHigh,prominence=threshHigh,distance=fs*60)
+    peaksLow,_ = find_peaks(energyLow,prominence=threshLow,distance=fs*tolerance)
+    peaksHigh,_ = find_peaks(energyHigh,prominence=threshHigh,distance=fs*tolerance)
 
-    # development features below
-    print(f)
+    # plot trace and energy peaks (for testing)
+    #st.plot()
     #plt.plot(energyHigh)
     #plt.plot(energyLow)
     #plt.plot(peaksHigh,energyHigh[peaksHigh],"^")
     #plt.plot(peaksLow,energyLow[peaksLow],"v")
+    #plt.show()
 
     # check if peaks are concurrent in each band
-    for pH in peaksHigh:
-        for pL in peaksLow:
+    for h in range(len(peaksHigh)):
+        for l in range(len(peaksLow)):
 
-            # widen tolerance if max energy of the day (biggest events are longer duration)
-            if energyHigh[pH]/np.max(energyHigh) == 1 and energyLow[pL]/np.max(energyLow) == 1:
-                 if pL - pH < tolerance*10*fs and pL - pH > 0:
+            # reset buffers
+            buffFront = buffFrontBase
+            buffEnd = buffEndBase
 
-                     # make bounds around detection
-                     winStart = st[0].stats.starttime + pH/fs - buffFront*10
-                     winEnd = st[0].stats.starttime + pH/fs + buffEnd*10
+            # reset detection flag
+            flag = 0
 
-                     # extract detected event waveform
-                     det = st.slice(starttime=winStart,endtime=winEnd)
+            # skip to next iteration if low frequency detection is first
+            if peaksLow[l] - peaksHigh[h] < 0:
+                continue
 
-                     # write the stream to hdf5
-                     det.write(path + 'waveforms.h5','H5',mode='a')
+            # check if biggest low freq peak of day
+            if energyLow[peaksLow[l]]/np.max(energyLow) == 1:
 
-                     #plt.plot(pH,energyHigh[pH],"*")
+                # check if at least two low freq peaks are within tolerance*10*fs seconds of the high freq peak
+                if peaksLow[l] - peaksHigh[h] < tolerance*10*fs and peaksLow[l+1] - peaksHigh[h] < tolerance*10*fs:
 
+                     # increase bounds for large event
+                     buffFront = 5*buffFront
+                     buffEnd = 5*buffFront
+
+                     # set detection flag and filename parameter
+                     flag = 1
+                     type = 'long'
+
+                # if not, check if normal detection criteria is met
+                else:
+                    if peaksLow[l] - peaksHigh[h] < tolerance*fs:
+
+                        # set detection flag and filename parameter
+                        flag = 1
+                        type = 'short'
+
+            # if not, check if normal detection criteria is met
             else:
-                if pL - pH < tolerance*fs and pL - pH > 0:
+                if peaksLow[l] - peaksHigh[h] < tolerance*fs:
 
-                    # make bounds around detection
-                    winStart = st[0].stats.starttime + pH/fs - buffFront
-                    winEnd = st[0].stats.starttime + pH/fs + buffEnd
-                    print(winStart)
+                    # set detection flag and filename parameter
+                    flag = 1
+                    type = 'short'
 
-                    # extract detected event waveform
-                    det = st.slice(starttime=winStart,endtime=winEnd)
+            # if flag is set, pull out and save data
+            if flag:
 
-                    # write the stream to hdf5
-                    det.write(outPath + 'conservativeWaveforms.h5','H5',mode='a')
+                # make bounds around detection
+                winStart = st[0].stats.starttime + peaksHigh[h]/fs - buffFront
+                winEnd = st[0].stats.starttime + peaksHigh[h]/fs + buffEnd
 
-                    #plt.plot(pH,energyHigh[pH],"*")
+                # make plot of detection (for testing)
+                #st.plot(starttime=winStart,endtime=winEnd)
 
-    #print(detections)
+                # extract detected event waveform
+                det = st.slice(starttime=winStart,endtime=winEnd)
+
+                # write the stream to hdf5
+                det.write(outPath + type + '_waveforms.h5','H5',mode='a')

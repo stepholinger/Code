@@ -25,8 +25,10 @@ path = "/media/Data/Data/PIG/MSEED/noIR/"
 templatePath = "/home/setholinger/Documents/Projects/PIG/detections/energy/"
 
 # read in h5 file of single channel templates- we will use the start and end times to make 3-component templates
-tempH5 = obspy.read(templatePath + 'conservativeWaveforms.h5')
-numTemp = len(tempH5)
+#tempH5 = obspy.read(templatePath + 'conservativeWaveforms.h5')
+#numTemp = len(tempH5)
+tempH5 = obspy.read("/home/setholinger/Documents/Code/python/detection/templates/0.01-1Hz/2012-04-02.h5")
+numTemp = 1
 
 # define parallel parameters
 readPar = 0
@@ -42,24 +44,24 @@ filtType = "bandpass"
 
 # enter the buffer used on the front and back end to produce templates
 # this duration will be removed after filtering from the front and back ends of the template
-buff = [2*60,2*60]
-trimIdx = 260
+#buff = [2*60,2*60]
+#trimIdx = 260
 
 # make and save templates (don't re run this)
 #makeTemplateList(tempH5,buff,path,stat,chan,freq,filtType,readPar,nproc)
 
 # set start date for scan
-startDate = obspy.UTCDateTime(2012,6,30,0,1)
+startDate = obspy.UTCDateTime(2012,1,10,0,0)
 numDays = 720
 
 # set template chunk size
-blockSize = 100
+blockSize = 1
 
 # set minimum distance in seconds between detections
 tolerance = 60
 
 # set threshold for detector
-threshold = 5
+threshold = 4.5
 
 for i in range(numDays):
 
@@ -92,7 +94,8 @@ for i in range(numDays):
         elif filtType == "highpass":
             st.filter(filtType,freq=freq[0])
 
-        for j in range(int(len(tempH5)/blockSize)+1):
+        #for j in range(int(len(tempH5)/blockSize)+1):
+        for j in range(1):
 
             # start timer and give output
             timer = time.time()
@@ -101,19 +104,23 @@ for i in range(numDays):
             templates = []
             template_names = []
             for k in range(j*blockSize,(j+1)*blockSize):
+            #for k in range(1):
+
                 try:
                      # read template file
-                     stTemp = obspy.read('templates/' + str(freq[0]) + '-' + str(freq[1]) + 'Hz/template_'+str(k)+'.h5')
+                     #stTemp = obspy.read('templates/' + str(freq[0]) + '-' + str(freq[1]) + 'Hz/template_'+str(k)+'.h5')
+
+                     stTemp = obspy.read("/home/setholinger/Documents/Code/python/detection/templates/0.01-1Hz/2012-04-02.h5")
 
                      # occasionally templates are one sample too short- trim to the correct number of samples
                      # this handling is a bit clumsy- redo later
-                     for c in range(numChan):
-                        stTemp[c].data=stTemp[c].data[:trimIdx]
+                     #for c in range(numChan):
+                     #   stTemp[c].data=stTemp[c].data[:trimIdx]
                      templates.append(stTemp)
-                     template_names.append("tempate_" + str(k))
+                     template_names.append("template_" + str(k))
                      #print(stTemp)
                 except:
-                    pass
+                     pass
 
             # run eqcorrscan's match filter routine
             det = match_filter(template_names=template_names,template_list=templates,st=st,threshold=threshold,threshold_type="MAD",trig_int=6,cores=20)

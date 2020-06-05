@@ -6,17 +6,18 @@ import numpy as np
 import h5py
 
 # set path
-path = '/home/setholinger/Documents/Projects/PIG/detections/templateMatch/template1/'
+path = '/home/setholinger/Documents/Projects/PIG/detections/energy/conservative/'
 
 # load waveforms
-waveforms = obspy.read(path + 'waveforms.h5')
+#waveforms = obspy.read(path + 'waveforms.h5')
+waveforms = obspy.read('/home/setholinger/Documents/Projects/PIG/detections/energy/conservative/waveforms.h5')
 
 # set filter parameters and filter waveforms
-freq = [0.05,0.1]
-waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
+#freq = [0.05,0.1]
+#waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
 
 # set master event for correlation
-masterEvent = waveforms[455]
+masterEvent = waveforms[1]
 
 # open file for output
 outFile = h5py.File(path + "correlations.h5","w")
