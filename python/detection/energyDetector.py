@@ -105,26 +105,28 @@ for f in files:
 
             # check if biggest low freq peak of day
             if energyLow[peaksLow[l]]/np.max(energyLow) == 1:
+                try:
+                    # check if at least two low freq peaks are within tolerance*10*fs seconds of the high freq peak
+                    if peaksLow[l] - peaksHigh[h] < tolerance*10*fs and peaksLow[l+1] - peaksHigh[h] < tolerance*10*fs:
 
-                # check if at least two low freq peaks are within tolerance*10*fs seconds of the high freq peak
-                if peaksLow[l] - peaksHigh[h] < tolerance*10*fs and peaksLow[l+1] - peaksHigh[h] < tolerance*10*fs:
+                         # increase bounds for large event
+                         buffFront = 5*buffFront
+                         buffEnd = 5*buffFront
 
-                     # increase bounds for large event
-                     buffFront = 5*buffFront
-                     buffEnd = 5*buffFront
+                         # set detection flag and filename parameter
+                         flag = 1
+                         type = 'long'
 
-                     # set detection flag and filename parameter
-                     flag = 1
-                     type = 'long'
+                    # if not, check if normal detection criteria is met
+                    else:
+                        if peaksLow[l] - peaksHigh[h] < tolerance*fs:
 
-                # if not, check if normal detection criteria is met
-                else:
-                    if peaksLow[l] - peaksHigh[h] < tolerance*fs:
-
-                        # set detection flag and filename parameter
-                        flag = 1
-                        type = 'short'
-
+                            # set detection flag and filename parameter
+                            flag = 1
+                            type = 'short'
+                except:
+                    pass
+                    
             # if not, check if normal detection criteria is met
             else:
                 if peaksLow[l] - peaksHigh[h] < tolerance*fs:
