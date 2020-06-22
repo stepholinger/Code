@@ -50,7 +50,7 @@ if t0 ~= 0 && pulseType ~= "none"
             erfStf = (erf(new_t/t0)+1)/2;
             [~,offset_index] = max(find(erfStf < 1e-5));
             erfOffset = -(max(new_t) + new_t(offset_index));
-            erfStf = (erf((new_t-erfOffset)/t0)+1)/2;
+            erfStf = (erf((new_t-erfOffset)/tpass0)+1)/2;
         catch
             error("Use a larger t_max for a pulse with t0 = " + string(t0))
         end

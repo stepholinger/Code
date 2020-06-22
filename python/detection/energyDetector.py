@@ -1,58 +1,57 @@
-import glob
-import time
 import numpy as np
-from scipy.signal import find_peaks
-import matplotlib.pyplot as plt
 import obspy
 import obspyh5
+from energyDetectorUtils import removeDoubleCounting
+from energyDetectorUtils import getFiles
+from energyDetectorUtils import getTriggers
+from energyDetectorUtils import getEnergyPeaks
+from energyDetectorUtils import saveWaveforms
+from energyDetectorUtils import saveDetections
+from energyDetectorUtils import testPlot
 
 path = "/media/Data/Data/PIG/MSEED/noIR/"
-outPath = "/home/setholinger/Documents/Projects/PIG/detections/energy/run2/"
+outPath = "/home/setholinger/Documents/Projects/PIG/detections/energy/run3/"
 stat = "PIG2"
-chan = "HHZ"
+chan = "all"
 fileType = "MSEED"
 fs = 100
 
-# specify two frequency bands for energy calculation
-freqLow = 0.5
+# specify two frequency bands, prominence, and allowable number of seconds between low and high frequency detections
+freqLow = [0.01,1]
 freqHigh = [1,10]
-
-# specify initial search parameters
-prominenceHigh = 0.1
-prominenceLow = 0.1
-
-# allowable distance between low and high frequency detections, in seconds
+prominence = 0.1
 tolerance = 120
+multiplier = 10
 
-# specify window to pull template around detection
-buffFrontBase = 2*60
-buffEndBase = 3*60
+# specify window to pull template around detection in seconds
+buffer = [2*60,3*60]
 
 # get all files of desired station and channel
-files = glob.glob(path + stat + "/" + chan + "/*", recursive=True)
-files.sort()
+files = getFiles(chan,path,stat)
 
 # first day is garbage, so remove it
 files = files[1:]
 
 # scan a specific day (for testing)
-#day = "2012-05-20"
-#dayFile = path + stat + "/" + chan + "/" + day + "." + stat + "." + chan + ".noIR.MSEED"
+#day = "2012-05-09"
+#dayFile = path + stat + "/HH*/" + day + "." + stat + ".HH*.noIR.MSEED"
 #files = [dayFile]
 
+# make empty arrays to store detection times
+detShort = []
+detLong = []
+
+# iterate through all filestrings
 for f in files:
+
+    # make empty arrays to store detection times
+    detShortTemp = []
+    detLongTemp = []
 
     # give some output
     print("Scanning " + f + "...")
 
-    # reset search parameters
-    threshHigh = prominenceHigh
-    threshLow = prominenceLow
-
-    # start timer
-    t = time.time()
-
-	# read in one data file
+	# read data files for all channels into one stream object
     st = obspy.read(f)
 
     # basic preprocessing
@@ -65,88 +64,68 @@ for f in files:
     stHigh = st.copy()
 
     # filter the data
-    stLow.filter("lowpass",freq=freqLow)
+    stLow.filter("bandpass",freqmin=freqLow[0],freqmax=freqLow[1])
     stHigh.filter("bandpass",freqmin=freqHigh[0],freqmax=freqHigh[1])
 
-    # square trace to get kinetic energy
-    energyLow = np.square(np.array(stLow[0].data,dtype='float64'))
-    energyHigh = np.square(np.array(stHigh[0].data,dtype='float64'))
+    # run trigger-finding algorithm for each channel
+    for s in range(len(st)):
 
-    # normalize amplitudes (helps with peak finding)
-    energyLow = energyLow/np.max(energyLow)
-    energyHigh = energyHigh/np.max(energyHigh)
+        # make empty arrays to store detections from current channel
+        detShortChan = []
+        detLongChan = []
+        detShortDay = []
+        detLongDay = []
 
-    # find maxima in both bands
-    peaksLow,_ = find_peaks(energyLow,prominence=threshLow,distance=fs*tolerance)
-    peaksHigh,_ = find_peaks(energyHigh,prominence=threshHigh,distance=fs*tolerance)
+        # calculate kinetic energy and find peaks
+        peaksLow,energyLow = getEnergyPeaks(stLow[s],prominence,tolerance,fs)
+        peaksHigh,energyHigh = getEnergyPeaks(stHigh[s],prominence,tolerance,fs)
 
-    # plot trace and energy peaks (for testing)
-    #st.plot()
-    #plt.plot(energyHigh)
-    #plt.plot(energyLow)
-    #plt.plot(peaksHigh,energyHigh[peaksHigh],"^")
-    #plt.plot(peaksLow,energyLow[peaksLow],"v")
-    #plt.show()
+        # plot trace and energy peaks (for testing)
+        #testPlot(energyHigh,peaksHigh,energyLow,peaksLow)
 
-    # check if peaks are concurrent in each band
-    for h in range(len(peaksHigh)):
-        for l in range(len(peaksLow)):
+        # check if peaks are concurrent in each band
+        for h in range(len(peaksHigh)):
+            for l in range(len(peaksLow)):
 
-            # reset buffers
-            buffFront = buffFrontBase
-            buffEnd = buffEndBase
+                # skip to next iteration if low frequency detection is first
+                if peaksLow[l] - peaksHigh[h] < 0:
+                    continue
 
-            # reset detection flag
-            flag = 0
+                # get triggers when peaks are sufficiently close to each other
+                detShortChan,detLongChan = getTriggers(st[s],energyLow,peaksLow[l:l+2],peaksHigh[h],tolerance,buffer[0],fs,detShortChan,detLongChan,multiplier*0.75)
 
-            # skip to next iteration if low frequency detection is first
-            if peaksLow[l] - peaksHigh[h] < 0:
-                continue
+        # remove double counting within current channel
+        detShortChan = removeDoubleCounting(detShortChan,tolerance)
+        detLongChan = removeDoubleCounting(detLongChan,tolerance*multiplier)
 
-            # check if biggest low freq peak of day
-            if energyLow[peaksLow[l]]/np.max(energyLow) == 1:
-                try:
-                    # check if at least two low freq peaks are within tolerance*10*fs seconds of the high freq peak
-                    if peaksLow[l] - peaksHigh[h] < tolerance*10*fs and peaksLow[l+1] - peaksHigh[h] < tolerance*10*fs:
+        # append to list for current channel
+        detShortTemp.extend(detShortChan)
+        detLongTemp.extend(detLongChan)
 
-                         # increase bounds for large event
-                         buffFront = 5*buffFront
-                         buffEnd = 5*buffFront
+    # sort detections
+    detShortTemp.sort()
+    detLongTemp.sort()
 
-                         # set detection flag and filename parameter
-                         flag = 1
-                         type = 'long'
+    # if a detection is repeated 2 times, save it
+    for d in range(len(detShortTemp)-1):
+        if detShortTemp[d+1] - detShortTemp[d] < tolerance:
+            detShortDay.append(detShortTemp[d])
+    for d in range(len(detLongTemp)-1):
+        if detLongTemp[d+1] - detLongTemp[d] < tolerance:
+            detLongDay.append(detLongTemp[d])
 
-                    # if not, check if normal detection criteria is met
-                    else:
-                        if peaksLow[l] - peaksHigh[h] < tolerance*fs:
+    # remove double counting from daily list
+    detShortDay = removeDoubleCounting(detShortDay,tolerance)
+    detLongDay = removeDoubleCounting(detLongDay,tolerance*multiplier)
 
-                            # set detection flag and filename parameter
-                            flag = 1
-                            type = 'short'
-                except:
-                    pass
-                    
-            # if not, check if normal detection criteria is met
-            else:
-                if peaksLow[l] - peaksHigh[h] < tolerance*fs:
+    # append to final list of detections
+    detShort.extend(detShortDay)
+    detLong.extend(detLongDay)
 
-                    # set detection flag and filename parameter
-                    flag = 1
-                    type = 'short'
+    # save waveform snippets of detections from current day
+    saveWaveforms(detShortDay,st,buffer,outPath,'short')
+    saveWaveforms(detLongDay,st,[buffer[0]*multiplier*0.75,buffer[1]*multiplier*1.5],outPath,'long')
 
-            # if flag is set, pull out and save data
-            if flag:
-
-                # make bounds around detection
-                winStart = st[0].stats.starttime + peaksHigh[h]/fs - buffFront
-                winEnd = st[0].stats.starttime + peaksHigh[h]/fs + buffEnd
-
-                # make plot of detection (for testing)
-                #st.plot(starttime=winStart,endtime=winEnd)
-
-                # extract detected event waveform
-                det = st.slice(starttime=winStart,endtime=winEnd)
-
-                # write the stream to hdf5
-                det.write(outPath + type + '_waveforms.h5','H5',mode='a')
+# save list of final detections
+saveDetections(detShort,outPath,'short')
+saveDetections(detLong,outPath,'long')

@@ -6,25 +6,35 @@ import numpy as np
 import h5py
 
 # define path to data and templates
+type = "long"
 path = "/media/Data/Data/PIG/MSEED/noIR/"
-templatePath = "/home/setholinger/Documents/Projects/PIG/detections/energy/run2/"
+templatePath = "/home/setholinger/Documents/Projects/PIG/detections/energy/run3/"
 fs = 100
 
 # read in h5 file of single channel templates- we will use the start and end times to make 3-component templates
-waveforms = obspy.read(templatePath + 'long_waveforms.h5')
-numTemp = len(waveforms)
-traceLen = waveforms[0].stats.npts
-masterInd = 52
-
-# set cross correlation coefficient threshold
-ccThresh = 0
+all_waveforms = obspy.read(templatePath + type + '_waveforms.h5')
 
 #filter waveforms
-freq = [0.001,0.1]
-waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
+freq = [0.001,1]
+all_waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
+
+# just get desired channel
+chan = 'HHZ'
+waveforms = []
+for f in all_waveforms:
+    if f.stats.channel == chan:
+        waveforms.append(f)
+
+numTemp = len(waveforms)
+traceLen = waveforms[0].stats.npts
+#masterInd = 11
+masterInd = 122
+
+# set cross correlation coefficient threshold
+ccThresh = 0.5
 
 # read hdf5 file of results from correlation
-output = h5py.File(templatePath + 'long_correlations.h5','r')
+output = h5py.File(templatePath + type + '_correlations.h5','r')
 
 # extract data from hdf5 file
 corrCoefs = list(output['corrCoefs'])
@@ -87,7 +97,7 @@ ax[0].set(ylim = [min(abs(sortCorrCoefs[:count])),max(abs(sortCorrCoefs[:count])
 ax[1].imshow(waveformData[:count,:], aspect = 'auto')
 
 # add title
-plt.title("Short K.E. Detections with CC > " + str(ccThresh) + " (" + str(freq[0]) + "-" + str(freq[1]) + " Hz)")
+plt.title(type + " K.E. Detections with CC > " + str(ccThresh) + " (" + str(freq[0]) + "-" + str(freq[1]) + " Hz)")
 
 # correct wonky formatting
 fig.tight_layout()

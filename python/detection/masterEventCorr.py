@@ -1,4 +1,3 @@
-#import obspyh5
 import obspy
 from obspy.signal.cross_correlation import correlate_template
 from obspy.signal.cross_correlation import xcorr_max
@@ -6,21 +5,30 @@ import numpy as np
 import h5py
 
 # set path
-path = '/home/setholinger/Documents/Projects/PIG/detections/energy/run2/'
+type = 'short'
+path = '/home/setholinger/Documents/Projects/PIG/detections/energy/run3/'
 
 # load waveforms
 #waveforms = obspy.read(path + 'waveforms.h5')
-waveforms = obspy.read('/home/setholinger/Documents/Projects/PIG/detections/energy/run2/long_waveforms.h5')
+all_waveforms = obspy.read('/home/setholinger/Documents/Projects/PIG/detections/energy/run3/'+type+'_waveforms.h5')
 
 # set filter parameters and filter waveforms
-freq = [0.001,0.1]
-waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
+freq = [0.01,1]
+all_waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
+
+# just get desired channel
+chan = 'HHZ'
+waveforms = []
+for f in all_waveforms:
+    if f.stats.channel == chan:
+        waveforms.append(f)
 
 # set master event for correlation
-masterEvent = waveforms[52]
+#masterEvent = waveforms[11]
+masterEvent = waveforms[122]
 
 # open file for output
-outFile = h5py.File(path + "long_correlations.h5","w")
+outFile = h5py.File(path + type + "_correlations.h5","w")
 
 # make some arrays for storing output
 shifts = np.zeros((len(waveforms)))
