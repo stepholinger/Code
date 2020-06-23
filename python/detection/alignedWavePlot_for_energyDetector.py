@@ -31,7 +31,7 @@ traceLen = waveforms[0].stats.npts
 masterInd = 122
 
 # set cross correlation coefficient threshold
-ccThresh = 0.5
+ccThresh = 0.1
 
 # read hdf5 file of results from correlation
 output = h5py.File(templatePath + type + '_correlations.h5','r')

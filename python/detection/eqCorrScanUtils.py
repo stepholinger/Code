@@ -79,7 +79,7 @@ def parFunc(tempTimes):
     templates_shared.append(st)
     template_names_shared.append(s.lower()+"temp"+str(tempTimes[2]))
 
-def makeTemplateList(tempH5,buff,path,stat,chan,freq,filtType,readPar,nproc):
+def makeTemplateList(tempH5,path,stat,chan,freq,filtType,readPar,nproc):
 
     # start timer and give output
     timer = time.time()
@@ -91,7 +91,7 @@ def makeTemplateList(tempH5,buff,path,stat,chan,freq,filtType,readPar,nproc):
 
     # get template starttimes, endtimes and index
     for t in range(len(tempH5)):
-        tempTimes.append([tempH5[t].stats.starttime+buff[0]*3/4,tempH5[t].stats.endtime-buff[1]*2/3,t])
+        tempTimes.append([tempH5[t].stats.starttime,tempH5[t].stats.endtime,t])
 
     # clear initial template catalog for memory
     del tempH5

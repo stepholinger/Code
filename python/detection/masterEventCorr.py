@@ -5,7 +5,7 @@ import numpy as np
 import h5py
 
 # set path
-type = 'short'
+type = 'long'
 path = '/home/setholinger/Documents/Projects/PIG/detections/energy/run3/'
 
 # load waveforms
@@ -13,7 +13,7 @@ path = '/home/setholinger/Documents/Projects/PIG/detections/energy/run3/'
 all_waveforms = obspy.read('/home/setholinger/Documents/Projects/PIG/detections/energy/run3/'+type+'_waveforms.h5')
 
 # set filter parameters and filter waveforms
-freq = [0.01,1]
+freq = [0.001,1]
 all_waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
 
 # just get desired channel
@@ -24,8 +24,8 @@ for f in all_waveforms:
         waveforms.append(f)
 
 # set master event for correlation
-#masterEvent = waveforms[11]
-masterEvent = waveforms[122]
+masterEvent = waveforms[11]
+#masterEvent = waveforms[122]
 
 # open file for output
 outFile = h5py.File(path + type + "_correlations.h5","w")
