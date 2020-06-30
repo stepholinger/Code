@@ -81,7 +81,7 @@ trimIdx = 600
 #makeTemplateList(tempH5,path,stat,chan,freq,filtType,readPar,nproc)
 
 # set start date for scan
-startDate = obspy.UTCDateTime(2012,1,10,0,0)
+startDate = obspy.UTCDateTime(2012,11,21,0,0)
 numDays = 720
 
 # set template chunk size

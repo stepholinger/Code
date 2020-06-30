@@ -2,19 +2,19 @@
 % scaling factor to match amplitude
 
 % get real data
-fname = "/media/Data/Data/PIG/MSEED/noIR/PIG2/HHZ/2012-04-02.PIG2.HHZ.noIR.MSEED";
+fname = "/media/Data/Data/PIG/MSEED/noIR/PIG2/HHZ/2012-05-09.PIG2.HHZ.noIR.MSEED";
 dataStruct = rdmseed(fname);
 
 % set model parameters
 L = 1e7;
 f_max = 1;
-t_max = 125;
-h_i = 350;
-h_w = 800;
+t_max = 1000;
+h_i = 50;
+h_w = 200;
 statDist = 10000;
 
 % run model
-[model,dGdt,~,~] = calcGF(1e7,f_max,t_max,h_i,h_w,statDist,"moment",6,"half up",0.025);
+[model,dGdt,~,~] = calcGF(1e7,f_max,t_max,h_i,h_w,statDist,"moment",10,"half up",0.025);
 
 % find index of max value
 [modelMax,modelMaxIdx] = max(dGdt);
@@ -28,7 +28,7 @@ fsNew = f_max*2;
 trace = resample(trace,fsNew,100);
 
 % set event bounds
-startTime = ((15*60+18)*60+50)*fsNew;
+startTime = ((18*60)*60)*fsNew;
 endTime = startTime + model.nt;
 
 % trim data to event bounds

@@ -5,9 +5,9 @@ dataStruct = rdmseed(fname);
 % extract trace
 trace = extractfield(dataStruct,'d');
 fs = 100;
-f_max = 0.5;
+f_max = 1;
 fsNew = f_max*2;
-nt = 7200*fsNew;
+nt = 1000*fsNew;
 
 % deal with under 1 Hz resampling
 if f_max < 0.5
@@ -32,7 +32,7 @@ eventTrace = filtTrace(startTime:endTime-1);
 eventTrace = eventTrace - eventTrace(1);
 
 % set parameter combinations
-xTest = [50,500,10000,5000,f_max,nt];
+xTest = [50,500,10000,500,f_max,nt];
 
 % run model
 [G_test,eventAlign,~] = GF_func_mcmc(xTest,eventTrace);

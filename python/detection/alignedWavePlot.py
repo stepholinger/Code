@@ -5,176 +5,109 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import h5py
 
-mode = "h5"
+# define path to data and templates
+type = "short"
+path = "/media/Data/Data/PIG/MSEED/noIR/"
+templatePath = "/home/setholinger/Documents/Projects/PIG/detections/templateMatch/multiTemplate/"
+fs = 100
 
-if mode == "read":
+# read in h5 file of single channel templates- we will use the start and end times to make 3-component templates
+all_waveforms = obspy.read(templatePath + type + '_waveforms.h5')
+prefiltFreq = [0.01,1]
 
-    # set path
-    path = '/home/setholinger/Documents/Projects/PIG/detections/templateMatch/template1/'
+#filter waveforms
+freq = [0.05,0.1]
+all_waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
 
-    # set file parameters
-    fs = 100
+# just get desired channel
+chan = 'HHZ'
+waveforms = []
+for f in all_waveforms:
+    if f.stats.channel == chan:
+        waveforms.append(f)
 
-    # set trace length and buffer in seconds
-    traceLenSec = 300
-    bufferLenSec = 100
-    traceLen = traceLenSec * fs
-    bufferLen = bufferLenSec * fs
+numTemp = len(waveforms)
+traceLen = waveforms[0].stats.npts
+#masterInd = 11
+masterInd = 3189
 
-    # load waveforms
-    waveforms = obspy.read(path + 'waveforms.h5')
 
-    # filter waveforms
-    freq = [0.01,0.1]
-    waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
+# set cross correlation coefficient threshold
+ccThresh = 0.4
 
-    # read hdf5 file of results from correlation
-    output = h5py.File(path + 'correlations.h5','r')
+# read hdf5 file of results from correlation
+output = h5py.File(templatePath + type + "_correlations_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5",'r')
 
-    # extract data from hdf5 file
-    corrCoefs = list(output['corrCoefs'])
-    shifts = list(output['shifts'])
+# extract data from hdf5 file
+corrCoefs = list(output['corrCoefs'])
+shifts = list(output['shifts'])
 
-    # load data into array
-    corrCoefs = np.array(corrCoefs)
-    shifts = np.array(shifts)
+# load data into array
+corrCoefs = np.array(corrCoefs)
+shifts = np.array(shifts)
 
-    # sort waveforms and shifts by correlation coeficient
-    sortInd = np.argsort(abs(corrCoefs))[::-1]
-    sortCorrCoefs = corrCoefs[sortInd]
-    sortShifts = shifts[sortInd]
+# sort waveforms and shifts by correlation coeficient
+sortInd = np.argsort(abs(corrCoefs))[::-1]
+sortCorrCoefs = corrCoefs[sortInd]
+sortShifts = shifts[sortInd]
 
-    # make array to store waveform data
-    waveformData = np.zeros((len(waveforms),traceLen))
+# make array to store waveform data
+waveformData = np.zeros((numTemp,traceLen))
 
-    for i in range(len(sortInd)):
+count = 0
 
-        # get trace from obspy stream
-        trace = waveforms[sortInd[i]].data
+for i in range(numTemp):
 
-        # flip polarity if necessary
-        if sortCorrCoefs[i] < 0:
-            trace = trace * -1
+  try:
 
-        # adjust buffer length with event shift
-        bufferShift = bufferLen - int(sortShifts[i])
+      if abs(sortCorrCoefs[i]) > ccThresh:
 
-        if sortShifts[i] > 0 and abs(sortShifts[i]) > bufferLen:
-            alignedTrace = np.append(np.zeros(abs(bufferShift)),trace)
-            alignedTrace = alignedTrace[:traceLen]
-            waveformData[i,:] = alignedTrace/np.max(abs(alignedTrace))
+          # plot waveform (for testing/checking)
+          #waveforms[sortInd[i]].plot()
 
-        else:
-            alignedTrace = trace[bufferShift:bufferShift + traceLen]
-            waveformData[i,:len(alignedTrace)] = alignedTrace/np.max(abs(alignedTrace))
+          # get trace from obspy stream
+          event = waveforms[sortInd[i]]
+          trace = event.data
 
-        print("Aligned " + str(round(i/len(waveforms)*100)) + "% of events")
+          # flip polarity if necessary
+          if sortCorrCoefs[i] < 0:
+              trace = trace * -1
 
-    # make empty figure
-    fig,ax = plt.subplots(nrows=1,ncols=2,sharex=False,sharey=False,gridspec_kw={'width_ratios':[1,4]})
+          if sortShifts[i] > 0:
+              alignedTrace = np.append(np.zeros(abs(int(sortShifts[i]))),trace)
+              alignedTrace = alignedTrace[:traceLen]
+              waveformData[i,:] = alignedTrace/np.max(abs(alignedTrace))
 
-    # plot histogram on left side of figure
-    ax[0].hist(abs(corrCoefs),100,orientation='horizontal')
-    ax[0].invert_xaxis()
-    ax[0].set(ylim = [min(abs(corrCoefs)),max(abs(corrCoefs))])
+          else:
+              alignedTrace = trace[abs(int(sortShifts[i])):]
+              waveformData[i,:len(alignedTrace)] = alignedTrace/np.max(abs(alignedTrace))
 
-    # make plot of all waveforms
-    ax[1].imshow(waveformData, aspect = 'auto')
+          print("Aligned " + str(round(i/len(waveforms)*100)) + "% of events")
+          count += 1
+  except:
+      pass
 
-    # correct wonky formatting
-    fig.tight_layout()
+# make empty figure
+fig,ax = plt.subplots(nrows=1,ncols=2,sharex=False,sharey=False,gridspec_kw={'width_ratios':[1,4]})
 
-    # display and save plot
-    plt.show()
-    #plt.savefig(path + 'waveformPlot.png')
+# plot histogram on left side of figure
+ax[0].hist(abs(sortCorrCoefs[:count]),50,orientation='horizontal')
+ax[0].invert_xaxis()
+corrCoefs[masterInd] = 0
+ax[0].set(ylim = [min(abs(sortCorrCoefs[:count])),max(abs(sortCorrCoefs[:count]))])
 
-    # close hdf5 file
-    output.close()
+# make plot of all waveforms
+ax[1].imshow(waveformData[:count,:], aspect = 'auto')
 
-if mode == "h5":
+# add title
+plt.title(type + " K.E. Detections with CC > " + str(ccThresh) + " (" + str(freq[0]) + "-" + str(freq[1]) + " Hz)")
 
-    # define path to data and templates
-    path = "/media/Data/Data/PIG/MSEED/noIR/"
-    templatePath = "/home/setholinger/Documents/Projects/PIG/detections/energy/run2/"
-    fs = 100
+# correct wonky formatting
+fig.tight_layout()
 
-    # read in h5 file of single channel templates- we will use the start and end times to make 3-component templates
-    waveforms = obspy.read(templatePath + 'long_waveforms.h5')
-    numTemp = len(waveforms)
-    traceLen = waveforms[0].stats.npts
-    bufferLen = 120*5*fs
-    masterInd = 52
+# display and save plot
+plt.show()
+#plt.savefig(path + 'waveformPlot.png')
 
-    #filter waveforms
-    #freq = [0.001,0.005]
-    #waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
-
-    # read hdf5 file of results from correlation
-    output = h5py.File(templatePath + 'long_correlations.h5','r')
-
-    # extract data from hdf5 file
-    corrCoefs = list(output['corrCoefs'])
-    shifts = list(output['shifts'])
-
-    # load data into array
-    corrCoefs = np.array(corrCoefs)
-    shifts = np.array(shifts)
-
-    # sort waveforms and shifts by correlation coeficient
-    sortInd = np.argsort(abs(corrCoefs))[::-1]
-    sortCorrCoefs = corrCoefs[sortInd]
-    sortShifts = shifts[sortInd]
-
-    # make array to store waveform data
-    waveformData = np.zeros((numTemp,traceLen))
-
-    for i in range(numTemp):
-
-        try:
-
-            # get trace from obspy stream
-            trace = waveforms[sortInd[i]].data
-            # flip polarity if necessary
-            if sortCorrCoefs[i] < 0:
-                trace = trace * -1
-
-            # adjust buffer length with event shift
-            bufferShift = bufferLen - int(sortShifts[i])
-
-            if sortShifts[i] > 0 and abs(sortShifts[i]) > bufferLen:
-                alignedTrace = np.append(np.zeros(abs(bufferShift)),trace)
-                alignedTrace = alignedTrace[:traceLen]
-                waveformData[i,:] = alignedTrace/np.max(abs(alignedTrace))
-
-            else:
-                alignedTrace = trace[bufferShift:bufferShift + traceLen]
-                waveformData[i,:len(alignedTrace)] = alignedTrace/np.max(abs(alignedTrace))
-            print("Aligned " + str(round(i/len(waveforms)*100)) + "% of events")
-
-        except:
-            pass
-
-    # make empty figure
-    fig,ax = plt.subplots(nrows=1,ncols=2,sharex=False,sharey=False,gridspec_kw={'width_ratios':[1,4]})
-
-    # plot histogram on left side of figure
-    ax[0].hist(abs(corrCoefs),50,orientation='horizontal')
-    ax[0].invert_xaxis()
-    corrCoefs[masterInd] = 0
-    ax[0].set(ylim = [min(abs(corrCoefs)),max(abs(corrCoefs))])
-
-    # make plot of all waveforms
-    ax[1].imshow(waveformData, aspect = 'auto')
-
-    # add title
-    plt.title("Long K.E. Detections (" + str(freq[0]) + "-" + str(freq[1]) + " Hz)")
-
-    # correct wonky formatting
-    fig.tight_layout()
-
-    # display and save plot
-    plt.show()
-    #plt.savefig(path + 'waveformPlot.png')
-
-    # close hdf5 file
-    output.close()
+# close hdf5 file
+output.close()
