@@ -226,3 +226,76 @@ for s = 0:numSteps
 end
 figure(3)
 sgtitle("Influence of Water Depth h_w")
+
+
+ 
+% define basic parameters
+statDist_vect = [1,10,50,100];
+L = 1e7;
+f_max = 1;
+t_max = 500;
+h_w = 250;
+h_i = 250;
+
+% set parameters that might get varied [h_i,h_w;...]
+numSteps = 4;
+c = hot(floor(numSteps*3));
+
+for s = 1:numSteps    
+    
+    % set parameters
+    statDist = statDist_vect(s)*1000;
+    
+    % get max pressure and moment
+    M_max =  916 * 9.8 * h_i^3 / 12 * 0.072;
+
+    % make model object
+    model = loadParameters(L,f_max,t_max,h_i,h_w);
+
+    % get index of desired position
+    [~,locIdx] = min(abs(model.x - statDist));
+
+    % run model
+    G = semiAnalyticGreenFunction(model);
+
+    % take spatial derivative
+    [~,dGdx] = gradient(G,model.dx);
+
+    % scale by ice front bending moment
+    G_scaled = dGdx * M_max;         
+
+    % get trace closest seismometer location
+    G_scaled = G_scaled(locIdx,:);
+    
+    % take time derivative to get velocity seismogram
+    dGdt = gradient(G_scaled,model.dt);
+    
+    % flexural wavelength
+    lambda = (model.D/(model.rho_w*model.g))^(1/4);
+    
+    % buoyancy oscillation
+    N = ((model.rho_w*model.g)/(model.rho_i*model.h_i))^(1/2);
+
+    % shallow water wave speed
+    c_w = sqrt(model.g*model.h_w);
+    
+    % shallow water wave speed only
+    figure(4)
+    % plot the parameter groups
+    subplot(1,4,1:2)
+    scatter(lambda,statDist/1000,50,c(s+1,:),'filled')
+    text(lambda,statDist/1000+2,'A_{max}: '+ string(max(abs(dGdt))),'Color',c(s+1,:))
+    ylabel("X_{stat} (km)") 
+    xlabel("\lambda (m)")
+    hold on
+    % plot the waveform
+    subplot(1,4,3:4)
+    plot(model.t,dGdt/max(abs(dGdt))+2*s,'Color',c(s+1,:))
+    yticklabels(gca,{})
+    yticks({})
+    xlabel("Time (s)")
+    hold on;
+    
+end
+figure(4)
+sgtitle("Influence of Station Distance X_{stat}")
