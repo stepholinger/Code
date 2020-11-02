@@ -57,7 +57,8 @@ def makeTemplate(path,stat,chan,tempLims,freq,filtType):
         stTemp.resample(freq[0]*2)
     elif filtType == "highpass":
         stTemp.filter(filtType,freq=freq[0])
-
+    elif filtType == "none":
+        pass
     # make a copy so we only have to read once for all detections on a given day
     st = stTemp.copy()
 
@@ -66,7 +67,11 @@ def makeTemplate(path,stat,chan,tempLims,freq,filtType):
 
     return stTemp,st
 
-
+# set whether to save snipped waveforms
+save = 1
+read = 0
+stack = 0
+type = 'long'
 
 # set path
 dataPath = "/media/Data/Data/PIG/MSEED/noIR/"
@@ -78,14 +83,14 @@ txt = 1
 if csv:
     det = read_detections(outPath + 'templateDetections_0.01-1Hz.csv')
 if txt:
-    det = [line.rstrip('\n') for line in open(outPath + 'multiTemplateDetections.txt')]
+    det = [line.rstrip('\n') for line in open(outPath + 'multiTemplateDetections_' + type + '.txt')]
 
 # set snippet length in seconds
 fs = 100
-snipLen = 300
+snipLen = 300001
 
 # add buffer in front of waveform
-buffer = 200
+buffer = 60000
 
 # set filter and filter waveforms- prefilt indicates waveforms already filtered
 freq = [0.05,1]
@@ -95,11 +100,6 @@ filtType = "bandpass"
 stat = 'PIG2'
 chan = 'HHZ'
 
-# set whether to save snipped waveforms
-save = 1
-read = 0
-stack = 0
-type = 'short'
 if read:
      waveforms = obspy.read(outPath + type + "_waveforms_" + str(freq[0]) + "-" + str(freq[1]) + "Hz.h5")
      #waveforms.filter("bandpass",freqmin=freq[0],freqmax=freq[1])
@@ -113,7 +113,7 @@ if read:
 # run 2
 #masterEventIdx = 1307
 # run 3
-masterEventIdx = 10679
+masterEventIdx = 1
 
 if read:
     masterEvent = waveforms[masterEventIdx]
@@ -160,12 +160,12 @@ for i in range(len(det)):
             #event = event[0]
 
         # correlate master event and waveform i
-        corr = correlate(masterEvent[0],event[0],event[0].stats.npts,normalize='naive',demean=False,method='auto')
-        shift, corrCoef = xcorr_max(corr)
+        #corr = correlate(masterEvent[0],event[0],event[0].stats.npts,normalize='naive',demean=False,method='auto')
+        #shift, corrCoef = xcorr_max(corr)
 
     # save output
-    shifts[i] = shift
-    corrCoefs[i] = corrCoef
+    #shifts[i] = shift
+    #corrCoefs[i] = corrCoef
     if save:
         event.write(outPath + type + '_waveforms_' + str(freq[0]) + "-" + str(freq[1]) + 'Hz.h5','H5',mode='a')
 
@@ -173,8 +173,8 @@ for i in range(len(det)):
     print("Correlated master event with " + str(round(i/len(det)*100)) + "% of events")
 
 # write output to file
-outFile.create_dataset("corrCoefs",data=corrCoefs)
-outFile.create_dataset("shifts",data=shifts)
+#outFile.create_dataset("corrCoefs",data=corrCoefs)
+#outFile.create_dataset("shifts",data=shifts)
 
 # close output file
-outFile.close()
+#outFile.close()

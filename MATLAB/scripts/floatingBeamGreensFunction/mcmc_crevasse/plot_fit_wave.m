@@ -23,7 +23,7 @@ l = legend("MCMC best-fit model","Data");
 set(l,'Location','southwest');
 set(gcf,'Position',[10 10 1000 800])
 hold off
-saveas(gcf,path + "run" + p + "_fit_wave.png")
+saveas(gcf,path + "centroid" + string(p-1) + "_fit_wave.png")
 close(gcf)
 
 end

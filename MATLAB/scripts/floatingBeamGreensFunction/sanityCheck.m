@@ -1,9 +1,9 @@
 % set parameters
 L = 1e7;
-f_max = 10;
+f_max = 1;
 t_max = 100;
-h_i = 100;
-h_w = 1000;
+h_i = 350;
+h_w = 600;
 
 % make model object to get needed values 
 model = loadParameters(L,f_max,t_max,h_i,h_w);

@@ -1,42 +1,6 @@
 % set parameters
 rho_i = 916;
 rho_w = 1024;
-h_i = 250;
-g = 9.8;
-
-% make vector of crevasse height ratios from -0.5 to 0.5
-c_ratio = -0.5:0.01:0.5;
-
-% make storage vector
-moments = zeros(length(c_ratio),1);
-
-% calculate moment for each crevasse fraction
-for c=1:length(c_ratio)
-    h_c = c_ratio(c)*h_i;
-    h_w = -h_i/2 + h_i * rho_i/rho_w;
-    
-    % calculate first part of moment expression
-    
-    if h_c > h_w
-        m = rho_i*g*((h_i*h_c^2)/4+(rho_i*h_i^3)/(4*rho_w)-(h_c^3)/3-(5*h_i^3)/48-(rho_i^2*h_i^3)/(6*rho_w^2));
-    else 
-        m = (rho_i*g-rho_w*g)*((h_i^3)/48-(h_c^3)/3-(h_i*h_c^2)/4);
-        %m = rho_i*g*(-1*(h_c^3)/3 + (h_i*h_c^2)/4 - (5*h_i^3)/48 + (rho_w*h_c^3)/(3*rho_i)...
-        %+(rho_w*h_i^3)/(24*rho_i) - (h_w*rho_w*h_c^2)/(2*rho_i) + (h_w*rho_w*h_i^2)/(8*rho_i));        
-    end
-    moments(c) = m;
-end
-M_0 = moments(end);
-plot(c_ratio/0.5,moments/M_0)
-xlabel("h_c/(h_i/2)")
-ylabel("Fraction of max bending moment M_0")
-hold on
-
-%%
-
-% set parameters
-rho_i = 916;
-rho_w = 1024;
 h_i = 100;
 g = 9.8;
 
@@ -68,11 +32,14 @@ for c=1:length(c_ratio)
     moments(c,2) = m_overburden-1*m_crevasse;
     moments(c,3) = -1*m_buoyancy+m_correction;
 end
+
 sgtitle("Fraction of max bending moment m_0")
 subplot(3,1,1)
 plot(c_ratio,moments(:,1)/m0)
+moment_curve = moments(:,1)/m0;
 xlabel("h_c/h_i")
 ylabel("Total")
+save("moment_crevasse_height_curve.mat","moment_curve","c_ratio")
 
 subplot(3,1,2)
 plot(c_ratio,moments(:,2)/m0)

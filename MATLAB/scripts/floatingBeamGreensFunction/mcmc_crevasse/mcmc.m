@@ -1,5 +1,5 @@
-function  [x_keep,L_keep,count,alpha_keep,accept,M_fracs] = mcmc(func,data,x0,xStep,xBounds,...
-                 sigma,numIt,M_frac_0,L0,liklihoodType)
+function  [x_keep,L_keep,count,alpha_keep,accept] = mcmc(func,data,x0,xStep,xBounds,...
+                 sigma,numIt,L0,liklihoodType)
 
 % [x_keep, L_keep, count] = mcmc(func,data,x0,xstep,sigma,Niter,varargin)
 %
@@ -39,16 +39,14 @@ if( size(xBounds,1) ~= numParams || size(xBounds,2) ~= 2)
 end
 
 % make empty arrays for storing results
-x_keep = zeros(numParams,numIt); 
-L_keep = zeros(1,numIt); 
-alpha_keep = zeros(1,numIt); 
-accept = zeros(1,numIt);
-M_fracs = zeros(1,numIt);
+x_keep = zeros(numParams,numIt,'single'); 
+L_keep = zeros(1,numIt,'single'); 
+alpha_keep = zeros(1,numIt,'single'); 
+accept = zeros(1,numIt,'single');
 
 % set a few parameters
 x = x0;
 L = L0;
-M = M_frac_0;
 H = NaN;
 
 % make counter and start iteration
@@ -60,40 +58,43 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
     % generate proposal
     xProp = x + xStep.* 2 .* (rand(1,numParams)-0.5);
     
-    % check bounds
-    if (min(xProp' > xBounds(:,1)) & min(xProp' < xBounds(:,2)))
+    % make sure h_c_final is larger than h_c_initial
+    if xProp(6) > xProp(5)
 
-        % deal with log t0
-        xProp(4) = 10^(xProp(4));
-        
-        % generate prediction for proposal
-        [dProp,dataAligned,M_frac] = fun(xProp,data);
-        
-        % deal with log t0
-        xProp(4) = log10(xProp(4));
-              
-        % calculate likelihood      
-        Lprop = liklihood(dProp,dataAligned,sigma,liklihoodType);
-        %fprintf("Lprop: " + Lprop + ", " + "L0: " + L0 + "\n")
-        % make random number to compare to ratio of likelihoods
-        u = rand;
-        
-        % compute hastings ratio
-        H = exp(Lprop-L);
-        
-        % accept proposal 
-        if (L == 0 || u <= min([H,1])) && M_frac < 1
-             fprintf("Accepted proposal ( " + u + " < " + min([H,1]) +")\n")
-             count = count+1;
-             x = xProp;
-             L = Lprop;
-             M = M_frac;
-             accept(k) = 1;
-        end 
+        % check bounds 
+        if (min(xProp' > xBounds(:,1)) & min(xProp' < xBounds(:,2)))
+
+            % deal with log t0
+            xProp(4) = 10^(xProp(4));
+
+            % generate prediction for proposal
+            [dProp,corrCoef] = fun(xProp,data);
+
+            % deal with log t0
+            xProp(4) = log10(xProp(4));
+
+            % calculate likelihood      
+            Lprop = liklihood(dProp,data,sigma,liklihoodType,corrCoef);
+            %fprintf("Lprop: " + Lprop + ", " + "L0: " + L0 + "\n")
+
+            % make random number to compare to ratio of likelihoods
+            u = rand;
+
+            % compute hastings ratio
+            H = exp(Lprop-L);
+
+            % accept proposal 
+            if (L == 0 || u <= min([H,1]))
+                 fprintf("Accepted proposal ( " + u + " < " + min([H,1]) +")\n")
+                 count = count+1;
+                 x = xProp;
+                 L = Lprop;
+                 accept(k) = 1;
+            end 
+        end
     end
     
     % save results
-    M_fracs(k) = M;
     x_keep(:,k) = x;
     L_keep(k) = L;
     alpha_keep(k) = H;

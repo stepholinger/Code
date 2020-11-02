@@ -17,38 +17,26 @@ templatePath = "/home/setholinger/Documents/Projects/PIG/detections/templateMatc
 fs = 2
 
 # set paramters
-readObspy = 1
-skipClustering = 0
-numCluster = 2
-type = "long"
+numCluster = 10
 
 # set length of wave snippets in seconds
-snipLen = 360001
+snipLen = 500
 
 # read in h5 file of single channel templates- we will use the start and end times to make 3-component templates
 prefiltFreq = [0.05,1]
 
-if readObspy:
-    waveforms = obspy.read(templatePath + type + '_waveforms_' + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + 'Hz.h5')
-    # exract data into matrix
-    waveform_matrix = np.zeros((len(waveforms),snipLen*fs+1))
-    for w in range(len(waveforms)):
-        data = waveforms[w].data
-        waveform_matrix[w,:waveforms[w].stats.npts] = data
-
-    waveFile = h5py.File(templatePath + type + "_waveform_matrix_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5",'w')
-    waveFile.create_dataset("waveforms",data=waveform_matrix)
-
 # load matrix of waveforms
-waveform_file = h5py.File(templatePath + type + "_waveform_matrix_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5",'r')
+waveform_file = h5py.File(templatePath +"short_waveform_matrix_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5",'r')
 waveform_matrix = list(waveform_file['waveforms'])
 waves = np.array(waveform_matrix.copy())
 
 # close h5 file
 waveform_file.close()
 
-# get a subset of the waveforms for testing
-print("Algorithm will run on " + str(len(waves)) + " waveforms")
+# load median amplitude stats
+medFile = h5py.File(templatePath + "clustering/" + str(numCluster) + "/" + str(numCluster) + "_cluster_median_amplitudes.h5","r")
+medAmps = np.array(list(medFile["median_amplitudes"]))
+medFile.close()
 
 # scale mean around zero
 input_waves = TimeSeriesScalerMeanVariance(mu=0., std=1.).fit_transform(waves)
@@ -58,28 +46,11 @@ print("Normalizing input data...")
 for i in range(len(input_waves)):
     input_waves[i,:] = input_waves[i,:]/max(input_waves[i,:])
 
-# save result
-if skipClustering == 0:
-
-    # run clustering
-    print("Clustering...")
-    ks = KShape(n_clusters=numCluster, n_init=1, random_state=0).fit(input_waves)
-    pred = ks.fit_predict(input_waves)
-
-    outFile = h5py.File(templatePath + "clustering/" + str(numCluster) +  "/" + str(numCluster) + "_cluster_predictions_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5","w")
-    outFile.create_dataset("cluster_index",data=pred)
-    outFile.create_dataset("centroids",data=ks.cluster_centers_)
-    outFile.create_dataset("inertia",data=ks.inertia_)
-    outFile.close()
-
-    # load some variables
-    centroids = ks.cluster_centers_
-
-if skipClustering:
-    outFile = h5py.File(templatePath + type + "_clustering/" + str(numCluster) +  "/" + str(numCluster) + "_cluster_predictions_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5","r")
-    pred = np.array(list(outFile["cluster_index"]))
-    centroids = list(outFile["centroids"])
-    outFile.close()
+# load clustering results
+outFile = h5py.File(templatePath + "clustering/" + str(numCluster) +  "/" + str(numCluster) + "_cluster_predictions_" + str(prefiltFreq[0]) + "-" + str(prefiltFreq[1]) + "Hz.h5","r")
+pred = np.array(list(outFile["cluster_index"]))
+centroids = list(outFile["centroids"])
+outFile.close()
 
 # for each cluster, cross correlate, align and plot each event in the cluster in reference to the centroid
 for c in range(numCluster):
@@ -134,14 +105,15 @@ for c in range(numCluster):
 
         print("Aligned " + str(round(w/len(clusterEvents_norm)*100)) + "% of events for cluster " + str(c+1))
 
-    # make plot
-    fig,ax = plt.subplots(nrows=3,ncols=1,sharex=True,sharey=False,gridspec_kw={'height_ratios':[1,2,6]})
+    # make plots
+    fig,ax = plt.subplots(nrows=3,ncols=1,sharex=True,sharey=False,gridspec_kw={'height_ratios':[1,3,8]})
     sortIdx = np.array(np.argsort(abs(corrCoefs))[::-1])
     t = np.linspace(0,snipLen,snipLen*fs+1)
 
-    ax[0].plot(t,centroids[c].ravel())
-    ax[0].title.set_text('Centroid Waveform')
-    ax[0].set_ylim([min(centroids[c].ravel()),max(centroids[c].ravel())])
+    ax[0].plot(t,centroids[c].ravel()/np.max(abs(centroids[c].ravel()))*medAmps[c])
+    ax[0].title.set_text('Centroid Waveform scaled by median $A_{max}$')
+    ax[0].set_ylim([-1*medAmps[c],medAmps[c]])
+    ax[0].ticklabel_format(style='sci', axis='y',scilimits=(0,0))
 
     # plot all waves and mean waveform (amplitudes preserved)
     for w in range(len(clusterEventsAligned)):
@@ -150,6 +122,7 @@ for c in range(numCluster):
     ax[1].plot(t,cluster_mean_wave)
     ax[1].set_ylim([-4*max(abs(cluster_mean_wave)),4*max(abs(cluster_mean_wave))])
     ax[1].title.set_text('Mean Waveform')
+    ax[1].ticklabel_format(style='sci', axis='y',scilimits=(0,0))
 
     ax[2].imshow(clusterEventsAligned_norm[sortIdx,:],aspect = 'auto',extent=[0,500,len(clusterEvents_norm),0])
     ax[2].title.set_text('Cluster Waveforms')

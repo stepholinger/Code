@@ -63,16 +63,29 @@ dGdt = dGdt(ceil(end/2):end);
 data = data/max(data);
 
 % find index of max value
-[~,dataMaxIdx] = max(data);
+% [~,dataMaxIdx] = max(data);
+% 
+% % find index of max value
+% [~,modelMaxIdx] = max(dGdt);
+% 
+% if modelMaxIdx > dataMaxIdx
+%     slide = modelMaxIdx-dataMaxIdx;
+%     data = [zeros(1,slide),data(1:end-slide)];
+% else
+%     slide = dataMaxIdx-modelMaxIdx;
+%     dGdt = [zeros(1,slide),dGdt(1:end-slide)];
+% end    
 
-% find index of max value
-[~,modelMaxIdx] = max(dGdt);
+% cross correlate with data
+[xcorrTrace,lag] = xcorr(data,dGdt,"coeff");
+[corrCoef,lagIndex] = max(xcorrTrace);  
+slide = lag(lagIndex);
+if slide > 0
+    dGdt = [zeros(1,abs(slide)),dGdt];
+    dGdt = dGdt(1:length(data));
+end
+if slide < 0
+    dGdt = [dGdt(abs(slide):end),zeros(1,abs(slide)-1)];
+end
 
-if modelMaxIdx > dataMaxIdx
-    slide = modelMaxIdx-dataMaxIdx;
-    data = [zeros(1,slide),data(1:end-slide)];
-else
-    slide = dataMaxIdx-modelMaxIdx;
-    dGdt = [zeros(1,slide),dGdt(1:end-slide)];
-end    
 end

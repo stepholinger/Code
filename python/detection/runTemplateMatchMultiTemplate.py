@@ -20,8 +20,8 @@ import time
 nproc = 18
 
 # define template match parameters for templates
-ccThresh = 0.5
-numTemp = 87
+ccThresh = 0.1
+numTemp = 1
 readTemplates = 1
 threshLow = 0.4
 threshHigh = 0.2
@@ -61,7 +61,7 @@ files.sort()
 fileMat.extend(files)
 
 # specify a specific file (for testing)
-#fileMat = ["/media/Data/Data/PIG/MSEED/noIR/PIG2/HHZ/2012-05-22.PIG2.HHZ.noIR.MSEED"]
+fileMat = ["/media/Data/Data/PIG/MSEED/noIR/PIG2/HHZ/2013-05-22.PIG2.HHZ.noIR.MSEED"]
 
 # loop through all files- we will replace channel string with wildcard as we go
 for f in fileMat:
@@ -130,12 +130,12 @@ for f in fileMat:
         finalDetections,finalDetID = removeRedundant(detections,detID,tolerance)
 
         # save results
-        with open(outPath + 'multiTemplateDetections.txt', 'a') as f:
-            for item in finalDetections:
-                f.write("%s\n" % item)
-        with open(outPath + 'templateIDs.txt', 'a') as f:
-            for item in finalDetID:
-                f.write("%s\n" % item)
+        #with open(outPath + 'multiTemplateDetections.txt', 'a') as f:
+        #    for item in finalDetections:
+        #        f.write("%s\n" % item)
+        #with open(outPath + 'templateIDs.txt', 'a') as f:
+        #    for item in finalDetID:
+        #        f.write("%s\n" % item)
 
     # stop timer
     runtime = time.time() - timer

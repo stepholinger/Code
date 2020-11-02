@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import copy
 import time
+import h5py
 
 def readInputTemplates(path,wave_fname,corr_fname,ccThresh):
     # read in templates from energy detector
@@ -35,10 +36,10 @@ def makeTemplates(dataPath,outPath,stat,freqLow,freqHigh,energy_det_cc,numTemp):
     print("Making " + str(len(energy_det_cc)) + " templates...")
     for d in range(numTemp):
         tempLims = [energy_det_cc[d].stats.starttime, energy_det_cc[d].stats.endtime]
-        stTempLow = makeSingleTemplates(dataPath,stat,"H*",tempLims,freqLow)
-        stTempHigh = makeSingleTemplates(dataPath,stat,"H*",tempLims,freqHigh)
-        stTempLow.write(outPath + '/shortTemplates_resample/' + 'tempLow_' + str(d) +'.h5','H5',mode='a')
-        stTempHigh.write(outPath + '/shortTemplates_resample/' + 'tempHigh_' + str(d) +'.h5','H5',mode='a')
+        stTempLow = makeSingleTemplate(dataPath,stat,"H*",tempLims,freqLow)
+        stTempHigh = makeSingleTemplate(dataPath,stat,"H*",tempLims,freqHigh)
+        stTempLow.write(outPath + '/longTemplates_resample/' + 'tempLow_' + str(d) +'.h5','H5',mode='a')
+        stTempHigh.write(outPath + '/longTemplates_resample/' + 'tempHigh_' + str(d) +'.h5','H5',mode='a')
 
 
 def readData(filename,freqLow,freqHigh,dummyChan):
