@@ -23,48 +23,34 @@ import multiprocessing
 from multiprocessing import Manager
 from multiprocessing import set_start_method
 
-# define number of clusters
-numCluster = 14
-nproc = 15
-
 # define function for parallelization
-def parFunc(c):
+def run_polarization(args):
 
-    # set path
-    dataPath = "/media/Data/Data/PIG/"
-    templatePath = "/home/setholinger/Documents/Projects/PIG/detections/templateMatch/multiTemplate/run3/"
-    outPath = "/home/setholinger/Documents/Projects/PIG/location/polarization/"
+    # get inputs
+    c = args[0]
+    numCluster = args[1]
+    nproc = args[2]
+    clust_method = args[3]
+    type = args[4]
+    fs = args[5]
+    dataPath = args[6]
+    templatePath = args[7]
+    outPath = args[8]
+    norm_component = args[9]
+    MAD = args[10]
+    norm_thresh = args[11]
+    xcorr_percent_thresh = args[12]
+    snipLen = args[13]
+    winLen = args[14]
+    slide = args[15]
 
-    # set data paramters
-    nproc = 15
-    _3D = 1
-    norm_component = 0
-    type = "short"
-    if _3D:
-        type = type + "_3D"
-    fs = 100
-    numCluster = 14
-
-    if _3D:
-        outPath = outPath + "3D_clustering/"
-        if norm_component:
-            outPath = outPath + "normalized_components/"
-            templatePath = templatePath + type.split("_")[0] + "_normalized_3D_clustering/"
-        else:
-            templatePath = templatePath + type + "_clustering/"
+    if norm_component:
+        outPath = outPath + "normalized_components/"
+        templatePath = templatePath + type + "_normalized_3D_clustering/" + clust_method + "/"
     else:
-        templatePath = templatePath + type + "_clustering/"
+        templatePath = templatePath + type + "_3D_clustering/" + clust_method + "/"
 
-    # set threshold parameters
-    # xcorr_percent_thresh = 0.1 will compute polarizations for the 10% best correlated events
-    norm_thresh = 2.75
-    MAD = 0
-    xcorr_percent_thresh = 0.1
-
-    # set windowing parameters
-    snipLen = 500
-    winLen = 10
-    slide = 5
+    # get window parameters
     numSteps = int((snipLen-winLen)/slide)
 
     # set stations and components
@@ -119,6 +105,7 @@ def parFunc(c):
     threshInd = abs(cluster_xcorr_coef).argsort()[-1*n_events:][::-1]
 
     # make array for storing pca vector sums and storing data to plot
+    event_index = np.zeros((numSteps*len(threshInd),1),"float64")
     all_first_components = np.zeros((numSteps*len(threshInd),2),"float64")
     clusterEventsAligned = np.zeros((len(threshInd),snipLen*fs),'float64')
 
@@ -162,6 +149,7 @@ def parFunc(c):
 
             # fill results vector
             all_first_components[i*numSteps:(i+1)*numSteps,:] = first_component_sums
+            event_index[i*numSteps:(i+1)*numSteps,1] = clusterInd[threshInd[i]]*np.ones((numSteps,1))
 
         except:
             # give output if no data on current station
@@ -186,6 +174,7 @@ def parFunc(c):
 
     # make array for storage
     back_azimuths = np.empty((0,1),"float64")
+    baz_event_index = np.empty((0,1),"float64")
 
     # plot pca compoments that exceed norm threshold
     # be wary- the transformed coordinate system's x-axis is meters north and the y-axis is meters east, so the pca_first_component[~,0] (which is cartesian x) is in [L] east
@@ -199,6 +188,7 @@ def parFunc(c):
             # calculate back azimuths and save in array
             baz = compute_baz(all_first_components[s,:])
             back_azimuths = np.vstack((back_azimuths,baz))
+            baz_event_index = np.vstack(event_index[s])
             count += 1
 
     # compute histogram of back azimuths
@@ -282,9 +272,7 @@ def parFunc(c):
     alignedWaves = np.array(list(waveFile["waveforms"]))
     waveFile.close()
     alignedWave_fs = 2
-    t = np.linspace(0,snipLen,snipLen*alignedWave_fs+1)
-    if _3D:
-        t = np.linspace(0,snipLen*3,(snipLen*alignedWave_fs+1)*3)
+    t = np.linspace(0,snipLen*3,(snipLen*alignedWave_fs+1)*3)
     maxAmps = np.zeros((len(threshInd),1),'float64')
     for w in range(len(threshInd)):
         ax[1].plot(t,alignedWaves[threshInd[w]],'k',alpha=0.1)
@@ -296,35 +284,23 @@ def parFunc(c):
     ax[1].set_xlabel("Time (seconds)")
     ax[1].set_ylabel("Velocity (m/s)")
     ax[1].set_xlim([t[0],t[-1]])
-    if _3D:
-        clusterChans = ["HHZ","HHN","HHE"]
-        ax[1].set_xticks([0,snipLen/2,snipLen,snipLen*3/2,snipLen*2,snipLen*5/2,snipLen*3])
-        xPos = [snipLen,snipLen*2]
-        for xc in xPos:
-            ax[1].axvline(x=xc,color='k',linestyle='--')
-        ax[1].set_xticklabels(['0','250\n'+clusterChans[0],'500  0   ','250\n'+clusterChans[1],'500  0   ','250\n'+clusterChans[2],'500'])
+    clusterChans = ["HHZ","HHN","HHE"]
+    ax[1].set_xticks([0,snipLen/2,snipLen,snipLen*3/2,snipLen*2,snipLen*5/2,snipLen*3])
+    xPos = [snipLen,snipLen*2]
+    for xc in xPos:
+        ax[1].axvline(x=xc,color='k',linestyle='--')
+    ax[1].set_xticklabels(['0','250\n'+clusterChans[0],'500  0   ','250\n'+clusterChans[1],'500  0   ','250\n' + clusterChans[2],'500'])
     ax[1].grid(linestyle=":")
     ax[1].grid()
 
     plt.tight_layout()
 
     #plt.show()
-    plt.savefig(outPath + "win_len_" + str(winLen) + "/norm>" + str(norm_thresh) + "/top_" + str(percent) + "%/cluster_" + str(c) + "_polarizations.png")
+    plt.savefig(outPath + "win_len_" + str(winLen) + "/norm>" + str(norm_thresh) + "/top_" + str(percent) + "%/" + str(numCluster)+ "/cluster_" + str(c) + "_polarizations.png")
     plt.close()
 
     # save actual backazimuth data
-    outFile = h5py.File(outPath + "win_len_" + str(winLen) + "/norm>" + str(norm_thresh) + "/top_" + str(percent) + "%/cluster_" + str(c) + "_backazimuths.h5","w")
+    outFile = h5py.File(outPath + "win_len_" + str(winLen) + "/norm>" + str(norm_thresh) + "/top_" + str(percent) + "%/" + str(numCluster) + "/cluster_" + str(c) + "_backazimuths.h5","w")
     outFile.create_dataset("backazimuths",data=back_azimuths)
+    outFile.create_dataset("index",data=baz_event_index)
     outFile.close()
-
-# call the function
-if __name__ == '__main__':
-    multiprocessing.freeze_support()
-    try:
-        set_start_method("spawn")
-    except:
-        pass
-    p = multiprocessing.Pool(processes=nproc)
-    p.map(parFunc,range(numCluster))
-    p.close()
-    p.join()

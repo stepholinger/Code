@@ -95,6 +95,7 @@ hold on;
 datetick('x')
 title("May 8 - May 11 (filtered above " + freq + " Hz)")
 ylabel('Velocity (m/s)')
+ylim([min(longTrace_filt),max(longTrace_filt)])
 patch([may9_times(startInd),may9_times(startInd),may9_times(endInd),...
     may9_times(endInd)],[min(longTrace_filt),max(longTrace_filt),...
     max(longTrace_filt),min(longTrace_filt)],'k','EdgeColor','none','FaceColor','red','FaceAlpha',0.2)

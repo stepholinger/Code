@@ -1,5 +1,5 @@
 function  [x_keep,L_keep,count,alpha_keep,accept,M_fracs] = mcmc(func,data,x0,xStep,xBounds,...
-                 sigma,numIt,M_frac_0,L0,liklihoodType)
+                 sigma,numIt,M_frac_0,L0,liklihoodType,freq)
 
 % [x_keep, L_keep, count] = mcmc(func,data,x0,xstep,sigma,Niter,varargin)
 %
@@ -67,7 +67,7 @@ disp(['Starting iteration ' num2str(k) ' of ' num2str(numIt)]);
         %xProp(4) = 10^(xProp(4));
         
         % generate prediction for proposal
-        [dProp,dataAligned,M_frac] = fun(xProp,data);
+        [dProp,dataAligned,M_frac] = fun(xProp,data,freq);
         
         % deal with log t0
         %xProp(4) = log10(xProp(4));
